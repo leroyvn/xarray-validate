@@ -114,6 +114,7 @@ rpds-py==0.22.3
 ruamel-yaml==0.18.6
 ruamel-yaml-clib==0.2.12
     # via ruamel-yaml
+setuptools==75.6.0
 six==1.17.0
     # via python-dateutil
 stack-data==0.6.3
