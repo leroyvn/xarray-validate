@@ -7,20 +7,21 @@ from .components import AttrSchema, AttrsSchema
 from .dataarray import CoordsSchema, DataArraySchema
 
 
-import attrs
+import attrs as _attrs
 
 
-@attrs.define(on_setattr=[attrs.setters.convert, attrs.setters.validate])
+@_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class DatasetSchema(BaseSchema):
     """
-    A light-weight xarray.Dataset validator
+    A lightweight xarray.Dataset validator.
 
     Parameters
     ----------
-    data_vars : mapping of variable names and DataArraySchemas, optional
-        Per-variable DataArraySchema's, by default None
-    checks : Iterable[Callable], optional
-        Dataset wide checks, by default None
+    data_vars : dict, optional
+        Per-variable :class:`.DataArraySchema`\ s.
+
+    checks : list of callables, optional
+        List of callables that will further validate the Dataset.
     """
 
     _json_schema: ClassVar = {
@@ -32,9 +33,9 @@ class DatasetSchema(BaseSchema):
         },
     }
 
-    data_vars: Optional[Dict[Hashable, Optional[DataArraySchema]]] = attrs.field(
+    data_vars: Optional[Dict[str, Optional[DataArraySchema]]] = _attrs.field(
         default=None,
-        converter=attrs.converters.optional(
+        converter=_attrs.converters.optional(
             lambda x: {
                 k: v if isinstance(v, DataArraySchema) else DataArraySchema(**v)
                 for k, v in x.items()
@@ -42,18 +43,21 @@ class DatasetSchema(BaseSchema):
         ),
     )
 
-    coords: Union[CoordsSchema, Dict[Hashable, DataArraySchema], None] = attrs.field(
+    coords: Union[CoordsSchema, Dict[str, DataArraySchema], None] = _attrs.field(
         default=None
     )
 
-    attrs: Union[AttrsSchema, Dict[Hashable, AttrSchema], None] = attrs.field(
+    attrs: Union[AttrsSchema, Dict[str, AttrSchema], None] = _attrs.field(
         default=None,
-        converter=attrs.converters.optional(
+        converter=_attrs.converters.optional(
             lambda x: x if isinstance(x, AttrsSchema) else AttrsSchema(x)
         ),
     )
 
-    checks: Iterable[Callable] = None
+    checks: Iterable[Callable] = _attrs.field(
+        factory=list,
+        validator=_attrs.validators.deep_iterable(_attrs.validators.is_callable()),
+    )
 
     @classmethod
     def from_json(cls, obj: dict):

@@ -8,9 +8,8 @@ from typing import (
     Dict,
     Hashable,
     List,
-    Mapping,
     Optional,
-    Union,
+    Mapping,
 )
 
 import attrs as _attrs
@@ -58,7 +57,7 @@ class CoordsSchema(BaseSchema):
         },
     }
 
-    coords: Dict[Hashable, DataArraySchema] = _attrs.field()
+    coords: Dict[str, DataArraySchema] = _attrs.field()
     require_all_keys: bool = _attrs.field(default=True)
     allow_extra_keys: bool = _attrs.field(default=True)
 
@@ -68,13 +67,15 @@ class CoordsSchema(BaseSchema):
         coords = {k: DataArraySchema.from_json(v) for k, v in list(coords.items())}
         return cls(coords, **obj)
 
-    def validate(self, coords: Any) -> None:
-        """Validate coords
+    def validate(self, coords: Mapping[str, Any]) -> None:
+        """
+        Validate coords
 
         Parameters
         ----------
         coords : dict_like
-            coords of the DataArray. `None` may be used as a wildcard value.
+            coords of the DataArray. ``None`` may be used as a wildcard value
+            for dict values.
         """
 
         if self.require_all_keys:
@@ -106,25 +107,32 @@ class CoordsSchema(BaseSchema):
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class DataArraySchema(BaseSchema):
     """
-    A light-weight xarray.DataArray validator
+    A lightweight xarray.DataArray validator.
 
     Parameters
     ----------
-    dtype : DTypeLike or DTypeSchema, optional
-        Datatype of the the variable. If a string is specified it must be a valid NumPy data type value, by default None
-    shape : ShapeT or ShapeSchema, optional
-        Shape of the DataArray. `None` may be used as a wildcard value. By default None
-    dims : DimsT or DimsSchema, optional
-        Dimensions of the DataArray.  `None` may be used as a wildcard value. By default None
-    chunks : Union[bool, Dict[str, Union[int, None]]], optional
-        If bool, specifies whether DataArray is chunked or not, agnostic to chunk sizes.
-        If dict, includes the expected chunks for the DataArray, by default None
+    dtype : DTypeLike or str or DTypeSchema, optional
+        Datatype of the the variable. If a string is specified, it must be a
+        valid NumPy data type value.
+
+    shape : ShapeT or tuple or ShapeSchema, optional
+        Shape of the DataArray.
+
+    dims : DimsT or list of str or DimsSchema, optional
+        Dimensions of the DataArray.
+
+    chunks : bool or dict or ChunksSchema, optional
+        If bool, specifies whether the DataArray is chunked or not, agnostic to
+        chunk sizes. If dict, includes the expected chunks for the DataArray.
+
     name : str, optional
-        Name of the DataArray, by default None
-    array_type : Any, optional
-        Type of the underlying data in a DataArray (e.g. `numpy.ndarray`), by default None
-    checks : List[Callable], optional
-        List of callables that take and return a DataArray, by default None
+        Name of the DataArray.
+
+    array_type : type, optional
+        Type of the underlying data in a DataArray (*e.g.* :class:`numpy.ndarray`).
+
+    checks : list of callables, optional
+        List of callables that will further validate the DataArray.
     """
 
     _json_schema: ClassVar = {"type": "object"}
@@ -208,11 +216,6 @@ class DataArraySchema(BaseSchema):
         ----------
         da : xr.DataArray
             DataArray to be validated
-
-        Returns
-        -------
-        xr.DataArray
-            Validated DataArray
 
         Raises
         ------

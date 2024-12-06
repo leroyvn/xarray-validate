@@ -6,5 +6,6 @@ dist/
 wheels/
 *.egg-info
 
-# venv
+# the rest
 .venv
+.idea/
