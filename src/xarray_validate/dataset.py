@@ -1,4 +1,4 @@
-from typing import Any, Callable, ClassVar, Dict, Hashable, Iterable, Optional, Union
+from typing import Callable, ClassVar, Dict, Iterable, Optional, Union
 
 import xarray as xr
 

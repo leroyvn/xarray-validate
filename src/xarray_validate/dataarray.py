@@ -6,7 +6,6 @@ from typing import (
     Callable,
     ClassVar,
     Dict,
-    Hashable,
     List,
     Optional,
     Mapping,
