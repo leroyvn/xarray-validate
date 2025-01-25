@@ -12,7 +12,7 @@ import attrs as _attrs
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class DatasetSchema(BaseSchema):
-    """
+    r"""
     A lightweight xarray.Dataset validator.
 
     Parameters
