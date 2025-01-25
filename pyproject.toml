@@ -43,10 +43,20 @@ dev-dependencies = [
   "rich>=13.9.4",
   "ruamel-yaml>=0.18.6",
   "setuptools>=75.6.0",
+  "sphinx>=8.1.3",
+  "furo>=2024.8.6",
+  "sphinx-autodoc2>=0.5.0",
+  "sphinx-autobuild>=2024.10.3",
   "pytest-cov>=6.0.0",
+  "sphinx-copybutton>=0.5.2",
+  "sphinx-autodoc-typehints>=3.0.1",
+  "autodocsumm>=0.2.14",
 ]
 
 [tool.rye.scripts]
+docs = { cmd = "sphinx-build -b html docs docs/_build/html" }
+docs-clean = { cmd = "rm -rf docs/_build/" }
+docs-serve = { cmd = "sphinx-autobuild docs docs/_build/html" }
 test = "pytest"
 test-cov = "pytest --cov=src"
 test-cov-report = "pytest --cov=src --cov-report=html"

@@ -9,3 +9,5 @@ wheels/
 # the rest
 .venv
 .idea/
+docs/_build
+.coverage
