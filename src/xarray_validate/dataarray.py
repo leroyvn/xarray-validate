@@ -35,8 +35,10 @@ class CoordsSchema(BaseSchema):
     ----------
     coords : dict
         Dict of coordinate keys and ``DataArraySchema`` objects
+
     require_all_keys : bool
         Whether require to all coordinates included in ``coords``
+
     allow_extra_keys : bool
         Whether to allow coordinates not included in ``coords`` dict
 
@@ -119,6 +121,9 @@ class DataArraySchema(BaseSchema):
 
     dims : DimsT or list of str or DimsSchema, optional
         Dimensions of the DataArray.
+
+    coords : CoordsSchema, optional
+        Coordinates of the DataArray.
 
     chunks : bool or dict or ChunksSchema, optional
         If bool, specifies whether the DataArray is chunked or not, agnostic to

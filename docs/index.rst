@@ -1,3 +1,5 @@
+:hide-toc:
+
 xarray-validate documentation
 =============================
 
