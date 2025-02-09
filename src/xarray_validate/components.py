@@ -1,48 +1,46 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Any, Dict, Hashable, Mapping, Optional, Tuple, Union, ClassVar
+from typing import Any, ClassVar, Dict, Hashable, Optional, Tuple, Union
 
 import attrs as _attrs
 import numpy as np
 from numpy import dtype
+from numpy.typing import DTypeLike
 
 from .base import BaseSchema, SchemaError
-from .types import ChunksT, DimsT, DTypeLike, ShapeT
+from .types import ChunksT, DimsT, ShapeT
+
+
+def _array_type_converter(value):
+    if value == "<class 'dask.array.core.Array'>":
+        import dask.array as da
+
+        return da.Array
+    elif value == "<class 'numpy.ndarray'>":
+        return np.ndarray
+    else:
+        return value
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class DTypeSchema(BaseSchema):
     """
-    Datatype schema
+    Datatype schema.
 
     Parameters
     ----------
     dtype : DTypeLike
-        Datatype definition, may be (string, np.dtype, etc.)
-
-    Raises
-    ------
-    SchemaError
+        DataArray dtype.
     """
 
-    _json_schema: ClassVar = {"type": "string"}
+    _json_schema: ClassVar[Dict[str, Any]] = {"type": "string"}
 
-    dtype: dtype = _attrs.field(
-        converter=lambda x: x
-        if x
-        in [
-            np.floating,
-            np.integer,
-            np.signedinteger,
-            np.unsignedinteger,
-            np.generic,
-        ]
-        else np.dtype(x)
-    )
+    dtype: dtype = _attrs.field(converter=np.dtype)
 
     @classmethod
-    def from_json(cls, obj: str):
+    def from_json(cls, obj) -> DTypeSchema:
+        # Inherit docstring
         if obj in [
             "floating",
             "integer",
@@ -57,92 +55,104 @@ class DTypeSchema(BaseSchema):
 
     def validate(self, dtype: DTypeLike) -> None:
         """
-        Validate dtype
+        Validate dtype against this schema
 
         Parameters
         ----------
-        dtype : Any
-            Dtype of the DataArray.
+        dtype : DTypeLike
         """
         if not np.issubdtype(dtype, self.dtype):
-            raise SchemaError(f"dtype {dtype} != {self.dtype}")
+            raise SchemaError(
+                f"dtype mismatch: got {repr(dtype)}, expected {repr(self.dtype)}"
+            )
 
     @property
     def json(self) -> str:
-        if isinstance(self.dtype, np.dtype):
-            return self.dtype.str
-        else:
-            # fallbacks
-            return str(getattr(self.dtype, "__name__", str(self.dtype)))
+        # Inherit docstring
+        return self.dtype.str
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class DimsSchema(BaseSchema):
     """
-    Dimensions schema
+    Dimensions schema.
 
     Parameters
     ----------
-    dims : str or iterable of str
-        Dimensions definition, ``None`` may be used as a wildcard.
-
-    Raises
-    ------
-    SchemaError
+    dims : sequence of (str or None)
+        DataArray dimensions. ``None`` may be used as a wildcard.
     """
 
-    _json_schema: ClassVar = {"type": "array", "items": {"type": ["string", "null"]}}
+    _json_schema: ClassVar[Dict[str, Any]] = {
+        "type": "array",
+        "items": {"type": ["string", "null"]},
+    }
 
-    dims: DimsT = _attrs.field()
+    dims: DimsT = _attrs.field(
+        converter=lambda x: tuple(x) if not isinstance(x, str) else x,
+        validator=_attrs.validators.deep_iterable(
+            member_validator=_attrs.validators.optional(
+                _attrs.validators.instance_of(str)
+            )
+        ),
+    )
 
     @classmethod
-    def from_json(cls, obj: DimsT):
+    def from_json(cls, obj: DimsT) -> DimsSchema:
+        # Inherit docstring
         return cls(obj)
 
-    def validate(self, dims: tuple) -> None:
+    def validate(self, dims: DimsT) -> None:
         """
-        Validate dimensions
+        Validate dimensions against this schema.
 
         Parameters
         ----------
-        dims : Tuple[Union[str, None]]
-            Dimensions of the DataArray. `None` may be used as a wildcard value.
+        dims : DimsT
+            Tuple of dimension names. ``None`` may be used as a wildcard value.
         """
         if len(self.dims) != len(dims):
             raise SchemaError(
-                f"length of dims does not match: {len(dims)} != {len(self.dims)}"
+                f"dimension number mismatch: got {len(dims)}, expected {len(self.dims)}"
             )
 
         for i, (actual, expected) in enumerate(zip(dims, self.dims)):
             if expected is not None and actual != expected:
-                raise SchemaError(f"dim mismatch in axis {i}: {actual} != {expected}")
+                raise SchemaError(
+                    f"dimension mismatch in axis {i}: got {actual}, expected {expected}"
+                )
 
     @property
     def json(self) -> list:
+        # Inherit docstring
         return list(self.dims)
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class ShapeSchema(BaseSchema):
     """
-    Shape schema
+    Shape schema.
 
     Parameters
     ----------
-    shape : iterable of ints
-        Shape definition, ``None`` may be used as a wildcard.
-
-    Raises
-    ------
-    SchemaError
+    shape : sequence of (int or None)
+        Shape of the DataArray. ``None`` may be used as a wildcard.
     """
 
-    _json_schema: ClassVar = {"type": "array"}
+    _json_schema: ClassVar[Dict[str, Any]] = {"type": "array"}
 
-    shape: ShapeT = _attrs.field()
+    shape: ShapeT = _attrs.field(
+        converter=lambda x: tuple(x) if not isinstance(x, int) else x,
+        validator=_attrs.validators.deep_iterable(
+            member_validator=_attrs.validators.optional(
+                _attrs.validators.instance_of(int)
+            )
+        ),
+    )
 
     @classmethod
     def from_json(cls, obj: ShapeT):
+        # Inherit docstring
         return cls(obj)
 
     def validate(self, shape: tuple) -> None:
@@ -152,43 +162,44 @@ class ShapeSchema(BaseSchema):
         Parameters
         ----------
         shape : ShapeT
-            Shape of the DataArray. `None` may be used as a wildcard value.
+            Shape to validate. ``None`` may be used as a wildcard value.
         """
         if len(self.shape) != len(shape):
             raise SchemaError(
-                f"number of dimensions in shape ({len(shape)}) != da.ndim ({len(self.shape)})"
+                "dimension count mismatch: "
+                f"got {len(shape)}, expected {len(self.shape)}"
             )
 
         for i, (actual, expected) in enumerate(zip(shape, self.shape)):
             if expected is not None and actual != expected:
-                raise SchemaError(f"shape mismatch in axis {i}: {actual} != {expected}")
+                raise SchemaError(
+                    f"shape mismatch in axis {i}: got {actual}, expected {expected}"
+                )
 
     @property
     def json(self) -> list:
+        # Inherit docstring
         return list(self.shape)
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class NameSchema(BaseSchema):
     """
-    Name schema
+    Name schema.
 
     Parameters
     ----------
     name : str
         Name definition.
-
-    Raises
-    ------
-    SchemaError
     """
 
-    _json_schema: ClassVar = {"type": "string"}
+    _json_schema: ClassVar[Dict[str, Any]] = {"type": "string"}
 
-    name: str = _attrs.field()
+    name: str = _attrs.field(converter=str)
 
     @classmethod
     def from_json(cls, obj: str):
+        # Inherit docstring
         return cls(obj)
 
     def validate(self, name: Hashable) -> None:
@@ -197,43 +208,48 @@ class NameSchema(BaseSchema):
 
         Parameters
         ----------
-        name : str, optional
-            Name of the DataArray. Currently requires an exact string match.
+        name : str
+            Name of the DataArray.
+
+        Notes
+        -----
+        Currently requires an exact string match.
         """
         # TODO: support regular expressions
         # - http://json-schema.org/understanding-json-schema/reference/regular_expressions.html
         # - https://docs.python.org/3.9/library/re.html
         if self.name != name:
-            raise SchemaError(f"name {name} != {self.name}")
+            raise SchemaError(f"name mismatch: got {name}, expected {self.name}")
 
     @property
     def json(self) -> str:
+        # Inherit docstring
         return self.name
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class ChunksSchema(BaseSchema):
     """
-    Chunks schema
+    Chunks schema.
 
     Parameters
     ----------
     chunks : dict or bool
-        Chunks definition. If ``bool``, whether validated object should be chunked.
-        If ``dict``, mapping of dimension name to chunk size. None may be used as a wildcard.
-
-    Raises
-    ------
-    SchemaError
+        Chunks definition. If ``bool``, whether the validated object should be
+        chunked. If ``dict``, mapping of dimension name to chunk size. ``None``
+        may be used as a wildcard.
     """
 
-    _json_schema: ClassVar = {"type": ["boolean", "object"]}
+    _json_schema: ClassVar[Dict[str, Any]] = {"type": ["boolean", "object"]}
 
-    chunks: ChunksT = _attrs.field()
+    chunks: ChunksT = _attrs.field(
+        validator=_attrs.validators.instance_of((bool, dict))
+    )
 
     @classmethod
     def from_json(cls, obj: dict):
-        return cls(obj)  # TODO: this will likely need input validation.
+        # Inherit docstring
+        return cls(obj)
 
     def validate(
         self,
@@ -248,8 +264,10 @@ class ChunksSchema(BaseSchema):
         ----------
         chunks : tuple
             Chunks from ``DataArray.chunks``
+
         dims : tuple of str
             Dimension keys from array.
+
         shape : tuple of int
             Shape of array.
         """
@@ -264,25 +282,32 @@ class ChunksSchema(BaseSchema):
                 raise SchemaError("expected array to be chunked but it is not")
             dim_chunks = dict(zip(dims, chunks))
             dim_sizes = dict(zip(dims, shape))
-            # check whether chunk sizes are regular because we assume the first chunk to be representative below
+            # Check whether chunk sizes are regular because we assume the first
+            # chunk to be representative below
             for key, ec in self.chunks.items():
                 if isinstance(ec, int):
-                    # handles case of expected chunksize is shorthand of -1 which translates to the full length of dimension
+                    # Handles case of expected chunk size is shorthand of -1 which
+                    # translates to the full length of dimension
                     if ec < 0:
                         ec = dim_sizes[key]
                     ac = dim_chunks[key]
                     if any([a != ec for a in ac[:-1]]) or ac[-1] > ec:
-                        raise SchemaError(f"{key} chunks did not match: {ac} != {ec}")
+                        raise SchemaError(
+                            f"chunk mismatch for {key}: got {ac}, expected {ec}"
+                        )
 
                 else:  # assumes ec is an iterable
                     ac = dim_chunks[key]
                     if ec is not None and tuple(ac) != tuple(ec):
-                        raise SchemaError(f"{key} chunks did not match: {ac} != {ec}")
+                        raise SchemaError(
+                            f"chunk mismatch for {key}: got {ac}, expected {ec}"
+                        )
         else:
             raise ValueError(f"got unknown chunks type: {type(self.chunks)}")
 
     @property
     def json(self) -> Union[bool, Dict[str, Any]]:
+        # Inherit docstring
         if isinstance(self.chunks, bool):
             return self.chunks
         else:
@@ -298,96 +323,88 @@ class ChunksSchema(BaseSchema):
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class ArrayTypeSchema(BaseSchema):
     """
-    Array type schema
+    Array type schema.
 
     Parameters
     ----------
-    array_type : str or object
+    array_type : str or type
         Array type definition.
-
-    Raises
-    ------
-    SchemaError
     """
 
-    _json_schema: ClassVar = {"type": "string"}
+    _json_schema: ClassVar[Dict[str, Any]] = {"type": "string"}
 
-    array_type = _attrs.field()
+    array_type: type = _attrs.field(
+        converter=_array_type_converter, validator=_attrs.validators.instance_of(type)
+    )
 
     @classmethod
     def from_json(cls, obj: str):
-        array_type: (
-            Any  # TODO: figure out how to optionally include the dask array type
-        )
-
-        if obj == "<class 'dask.array.core.Array'>":
-            import dask.array as da
-
-            array_type = da.Array
-        elif obj == "<class 'numpy.ndarray'>":
-            array_type = np.ndarray
-        else:
-            raise ValueError(f"unknown array_type: {obj}")
-        return cls(array_type)
+        return cls(obj)
 
     def validate(self, array: Any) -> None:
         """
-        Validate array_type
+        Validate an array's dtype.
 
         Parameters
         ----------
         array : array_like
-            array_type of the DataArray. `None` may be used as a wildcard value.
+            Array whose type to validate. ``None`` may be used as a wildcard value.
         """
         if not isinstance(array, self.array_type):
-            raise SchemaError(f"array_type {type(array)} != {self.array_type}")
+            raise SchemaError(
+                f"array type mismatch: got {type(array)}, expected {self.array_type}"
+            )
 
     @property
     def json(self) -> str:
+        # Inherit docstring
         return str(self.array_type)
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class AttrSchema(BaseSchema):
     """
-    Attribute schema
+    Attribute schema.
 
     Parameters
     ----------
-    type : object
-        Attribute type definition.
-    value :
-        Attribute value definition.
+    type : type, optional
+        Attribute type definition. ``None`` may be used as a wildcard.
 
-    Raises
-    ------
-    SchemaError
+    value : Any
+        Attribute value definition. ``None`` may be used as a wildcard.
     """
 
-    _json_schema: ClassVar = {
+    _json_schema: ClassVar[Dict[str, Any]] = {
         "type": "string",
         "value": ["string", "number", "array", "boolean", "null"],
     }
 
-    type: Optional[str] = _attrs.field(default=None)
+    type: Optional[str] = _attrs.field(
+        default=None,
+        validator=_attrs.validators.optional(_attrs.validators.instance_of(type)),
+    )
     value: Optional[Any] = _attrs.field(default=None)
 
     @classmethod
     def from_json(cls, obj: str):
+        # Inherit docstring
         return cls(obj)
 
     def validate(self, attr: Any):
         """
-        Validate attrs
+        Validate attr.
 
         Parameters
         ----------
         attr : any
-            attribute, `None` may be used as a wildcard value.
+            Attribute to validate against this schema.
         """
         if self.type is not None:
             if not isinstance(attr, self.type):
-                raise SchemaError(f"attrs {attr} is not of type {self.type}")
+                raise SchemaError(
+                    f"attribute type mismatch {attr} is not of type {self.type}"
+                )
 
         if self.value is not None:
             if self.value is not None and self.value != attr:
@@ -395,6 +412,7 @@ class AttrSchema(BaseSchema):
 
     @property
     def json(self) -> dict:
+        # Inherit docstring
         return {"type": self.type, "value": self.value}
 
 
@@ -407,17 +425,15 @@ class AttrsSchema(BaseSchema):
     ----------
     attrs : str or iterable of str
         Attributes definition
-    require_all_keys : bool
-        Whether require to all coordinates included in ``attrs``
-    allow_extra_keys : bool
-        Whether to allow coordinates not included in ``attrs`` dict
 
-    Raises
-    ------
-    SchemaError
+    require_all_keys : bool
+        Whether to require to all coordinates included in ``attrs``.
+
+    allow_extra_keys : bool
+        Whether to allow coordinates not included in ``attrs`` dict.
     """
 
-    _json_schema: ClassVar = {
+    _json_schema: ClassVar[Dict[str, Any]] = {
         "type": "object",
         "properties": {
             "require_all_keys": {
@@ -428,12 +444,13 @@ class AttrsSchema(BaseSchema):
         },
     }
 
-    attrs: Mapping[Hashable, AttrSchema] = _attrs.field()
+    attrs: Dict[Hashable, AttrSchema] = _attrs.field(converter=dict)
     require_all_keys: bool = _attrs.field(default=True)
     allow_extra_keys: bool = _attrs.field(default=True)
 
     @classmethod
     def from_json(cls, obj: dict):
+        # Inherit docstring
         attrs = {}
         if "attrs" not in obj:
             raise ValueError("missing 'attrs' field")
@@ -458,8 +475,8 @@ class AttrsSchema(BaseSchema):
 
         Parameters
         ----------
-        attrs : dict_like
-            attrs dict, `None` may be used as a wildcard value.
+        attrs : mapping
+            attrs dict, ``None`` may be used as a wildcard value.
         """
 
         if self.require_all_keys:
@@ -480,6 +497,7 @@ class AttrsSchema(BaseSchema):
 
     @property
     def json(self) -> dict:
+        # Inherit docstring
         obj = {
             "require_all_keys": self.require_all_keys,
             "allow_extra_keys": self.allow_extra_keys,

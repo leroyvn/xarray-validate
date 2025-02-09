@@ -2,17 +2,19 @@
 Main interface.
 """
 
+from . import types as types
 from .base import SchemaError
-from .components import ArrayTypeSchema
-from .components import AttrSchema
-from .components import AttrsSchema
-from .components import ChunksSchema
-from .components import DimsSchema
-from .components import DTypeSchema
-from .components import NameSchema
-from .components import ShapeSchema
-from .dataarray import CoordsSchema
-from .dataarray import DataArraySchema
+from .components import (
+    ArrayTypeSchema,
+    AttrSchema,
+    AttrsSchema,
+    ChunksSchema,
+    DimsSchema,
+    DTypeSchema,
+    NameSchema,
+    ShapeSchema,
+)
+from .dataarray import CoordsSchema, DataArraySchema
 from .dataset import DatasetSchema
 
 __all__ = [
@@ -28,4 +30,5 @@ __all__ = [
     "CoordsSchema",
     "DataArraySchema",
     "DatasetSchema",
+    "types",
 ]

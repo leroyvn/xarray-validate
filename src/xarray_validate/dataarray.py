@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-
 from typing import (
     Any,
     Callable,
     ClassVar,
     Dict,
     List,
-    Optional,
     Mapping,
+    Optional,
 )
 
 import attrs as _attrs

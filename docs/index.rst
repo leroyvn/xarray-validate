@@ -10,7 +10,7 @@ This is a simple xarray data validation framework with an API inspired by Pander
 Core features inherited from xarray-schema:
 
 * validation schemas for xarray datasets and data arrays;
-* JSON roundtrip.
+* JSON serialization / deserialization.
 
 .. toctree::
     :maxdepth: 2

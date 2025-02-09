@@ -1,13 +1,11 @@
 from typing import Callable, ClassVar, Dict, Iterable, Optional, Union
 
+import attrs as _attrs
 import xarray as xr
 
 from .base import BaseSchema, SchemaError
 from .components import AttrSchema, AttrsSchema
 from .dataarray import CoordsSchema, DataArraySchema
-
-
-import attrs as _attrs
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
