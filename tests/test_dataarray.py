@@ -1,4 +1,3 @@
-import jsonschema
 import numpy as np
 import pytest
 import xarray as xr
@@ -19,13 +18,12 @@ def test_dataarray_empty_constructor():
     da = xr.DataArray(np.ones(4, dtype="i4"))
     da_schema = DataArraySchema()
     assert hasattr(da_schema, "validate")
-    jsonschema.validate(da_schema.json, da_schema._json_schema)
-    assert da_schema.json == {}
+    assert da_schema.serialize() == {}
     da_schema.validate(da)
 
 
 @pytest.mark.parametrize(
-    "kind, component, schema_args",
+    "attribute_name, component_schema_cls, component_schema_args",
     [
         ("dtype", DTypeSchema, "i4"),
         ("dims", DimsSchema, ("x", None)),
@@ -35,20 +33,24 @@ def test_dataarray_empty_constructor():
         ("chunks", ChunksSchema, False),
     ],
 )
-def test_dataarray_component_constructors(kind, component, schema_args):
+def test_dataarray_component_constructors(
+    attribute_name, component_schema_cls, component_schema_args
+):
     da = xr.DataArray(np.zeros((2, 4), dtype="i4"), dims=("x", "y"), name="foo")
-    comp_schema = component(schema_args)
-    schema = DataArraySchema(**{kind: schema_args})
-    assert comp_schema.json == getattr(schema, kind).json
-    jsonschema.validate(schema.json, schema._json_schema)
-    assert isinstance(getattr(schema, kind), component)
+    component_schema = component_schema_cls(component_schema_args)
+    data_array_schema = DataArraySchema(**{attribute_name: component_schema_args})
+    assert (
+        component_schema.serialize()
+        == getattr(data_array_schema, attribute_name).serialize()
+    )
+    assert isinstance(getattr(data_array_schema, attribute_name), component_schema_cls)
 
     # json roundtrip
-    rt_schema = DataArraySchema.from_json(schema.json)
+    rt_schema = DataArraySchema.deserialize(data_array_schema.serialize())
     assert isinstance(rt_schema, DataArraySchema)
-    assert rt_schema.json == schema.json
+    assert rt_schema.serialize() == data_array_schema.serialize()
 
-    schema.validate(da)
+    data_array_schema.validate(da)
 
 
 def test_dataarray_schema_validate_raises_for_invalid_input_type():
@@ -79,3 +81,35 @@ def test_checks_da(ds):
 
     with pytest.raises(NotCallableError):
         DataArraySchema(checks=[2])
+
+
+def test_schema_from_dataarray(ds):
+    da = ds["x"]
+
+    schema = DataArraySchema.from_dataarray(da)
+    schema.validate(da)
+    
+    expected = {
+        "dtype": "<i8",
+        "dims": ["x"],
+        "shape": [4],
+        "coords": {
+            "require_all_keys": True,
+            "allow_extra_keys": True,
+            "coords": {
+                "x": {
+                    "dtype": "<i8",
+                    "dims": ["x"],
+                    "shape": [4],
+                    "attrs": {
+                        "require_all_keys": True,
+                        "allow_extra_keys": True,
+                        "attrs": {},
+                    },
+                }
+            },
+        },
+        "name": "x",
+        "attrs": {"require_all_keys": True, "allow_extra_keys": True, "attrs": {}},
+    }
+    assert schema.serialize() == expected

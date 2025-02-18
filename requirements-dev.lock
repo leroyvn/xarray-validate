@@ -16,8 +16,7 @@ anyio==4.8.0
     # via starlette
     # via watchfiles
 attrs==25.1.0
-    # via jsonschema
-    # via referencing
+    # via xarray-validate
 autodocsumm==0.2.14
 babel==2.17.0
     # via sphinx
@@ -59,10 +58,6 @@ iniconfig==2.0.0
     # via pytest
 jinja2==3.1.5
     # via sphinx
-jsonschema==4.23.0
-    # via xarray-validate
-jsonschema-specifications==2024.10.1
-    # via jsonschema
 locket==1.0.0
     # via partd
 markdown-it-py==3.0.0
@@ -99,15 +94,9 @@ pytz==2025.1
     # via pandas
 pyyaml==6.0.2
     # via dask
-referencing==0.36.2
-    # via jsonschema
-    # via jsonschema-specifications
 requests==2.32.3
     # via sphinx
 rich==13.9.4
-rpds-py==0.22.3
-    # via jsonschema
-    # via referencing
 ruamel-yaml==0.18.10
     # via xarray-validate
 ruamel-yaml-clib==0.2.12
@@ -157,7 +146,6 @@ toolz==1.0.0
 typing-extensions==4.12.2
     # via anyio
     # via beautifulsoup4
-    # via referencing
     # via rich
     # via uvicorn
 tzdata==2025.1
@@ -172,5 +160,6 @@ websockets==15.0
     # via sphinx-autobuild
 xarray==2025.1.2
     # via xarray-validate
+xdoctest==1.2.0
 zipp==3.21.0
     # via importlib-metadata

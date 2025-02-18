@@ -1,4 +1,3 @@
-import jsonschema
 import numpy as np
 import pytest
 import xarray as xr
@@ -11,8 +10,7 @@ from xarray_validate.components import AttrSchema, AttrsSchema
 def test_dataset_empty_constructor():
     ds_schema = DatasetSchema()
     assert hasattr(ds_schema, "validate")
-    jsonschema.validate(ds_schema.json, ds_schema._json_schema)
-    assert ds_schema.json == {
+    assert ds_schema.serialize() == {
         "attrs": {},
         "data_vars": {},
     }  # TODO: Check for correctness
@@ -26,9 +24,7 @@ def test_dataset_example(ds):
         }
     )
 
-    jsonschema.validate(ds_schema.json, ds_schema._json_schema)
-
-    assert list(ds_schema.json["data_vars"].keys()) == ["foo", "bar"]
+    assert list(ds_schema.serialize()["data_vars"].keys()) == ["foo", "bar"]
     ds_schema.validate(ds)
 
     ds["foo"] = ds.foo.astype("float32")
@@ -65,12 +61,10 @@ def test_dataset_with_attrs_schema():
     actual_value = "actual_value"
     ds = xr.Dataset(attrs={name: actual_value})
     ds_schema = DatasetSchema(attrs={name: AttrSchema(value=expected_value)})
-    jsonschema.validate(ds_schema.json, ds_schema._json_schema)
 
     ds_schema_2 = DatasetSchema(
         attrs=AttrsSchema({name: AttrSchema(value=expected_value)})
     )
-    jsonschema.validate(ds_schema_2.json, ds_schema_2._json_schema)
     with pytest.raises(SchemaError):
         ds_schema.validate(ds)
     with pytest.raises(SchemaError):
@@ -94,7 +88,6 @@ def test_attrs_extra_key():
             require_all_keys=True,
         )
     )
-    jsonschema.validate(ds_schema.json, ds_schema._json_schema)
 
     with pytest.raises(SchemaError):
         ds_schema.validate(ds)
@@ -111,3 +104,51 @@ def test_attrs_missing_key():
     )
     with pytest.raises(SchemaError):
         ds_schema.validate(ds)
+
+
+def test_schema_from_dataset(ds):
+    schema = DatasetSchema.from_dataset(ds)
+    schema.validate(ds)
+
+    expected = {
+        "data_vars": {
+            "foo": {
+                "dtype": "<i4",
+                "dims": ["x"],
+                "shape": [4],
+                "attrs": {
+                    "require_all_keys": True,
+                    "allow_extra_keys": True,
+                    "attrs": {},
+                },
+            },
+            "bar": {
+                "dtype": "<f8",
+                "dims": ["x", "y"],
+                "shape": [4, 2],
+                "attrs": {
+                    "require_all_keys": True,
+                    "allow_extra_keys": True,
+                    "attrs": {},
+                },
+            },
+        },
+        "attrs": {"require_all_keys": True, "allow_extra_keys": True, "attrs": {}},
+        "coords": {
+            "require_all_keys": True,
+            "allow_extra_keys": True,
+            "coords": {
+                "x": {
+                    "dtype": "<i8",
+                    "dims": ["x"],
+                    "shape": [4],
+                    "attrs": {
+                        "require_all_keys": True,
+                        "allow_extra_keys": True,
+                        "attrs": {},
+                    },
+                }
+            },
+        },
+    }
+    assert schema.serialize() == expected
