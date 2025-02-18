@@ -1,25 +1,42 @@
 # xarray-validate
 
-This library is a port
-of [xarray-schema](https://github.com/xarray-contrib/xarray-schema)
-to the attrs library to reduce boilerplate and make schema validation and
-conversion more comprehensive.
+[![PyPI version](https://img.shields.io/pypi/v/xarray-validate?color=blue)](https://pypi.org/project/xarray-validate)
 
-My goals are:
+[![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/leroyvn/xarray-validate/ci.yml?branch=main)](https://github.com/leroyvn/pinttrs/actions/workflows/ci.yml)
+[![Documentation Status](https://img.shields.io/readthedocs/xarray-validate)](https://xarray-validate.readthedocs.io)
 
-* To get to the essentials: Having an xarray validation library that supports my
-  use case. Since I need to be able to maintain it, I need a codebase I enjoy
-  working with, and getting rid of class definition boilerplate is a priority.
-* To add a custom rule system to perform advanced validation tasks (e.g.
-  verifying units with the Pint library).
-* To support DataTree validation.
+[![Rye](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/mitsuhiko/rye/main/artwork/badge.json)](https://rye-up.com)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-Won't dos:
+## Motivation
 
-* Strict JSON roundtrip.
+*This library is a fork of
+[xarray-schema](https://github.com/xarray-contrib/xarray-schema).*
 
-TODO:
+I needed an xarray validation engine for one of my projects. The only solid
+contender I could see was xarray-schema, but its maintenance seems uncertain and
+its integration into the much larger Pandera project was not progressing quickly
+enough for me. I therefore decided to fork the project, refactor it and add the
+features I was missing.
 
-- [ ] Test on multiple Python versions
-- [ ] Test on Numpy 1 and 2
-- [ ] Check min Python version consistency with min xarray version
+## Features
+
+* DataArray and Dataset validation ⬆️
+* Basic Python type serialization / deserialization ⬆️
+* Construct schema from existing xarray data
+* ~~JSON roundtrip~~ (not guaranteed to work) 🚫
+
+⬆️ Inherited from xarray-schema
+🚫 Won't do / won't fix
+
+## License
+
+Pinttrs is distributed under the terms of the
+[MIT license](https://choosealicense.com/licenses/mit/).
+
+## About
+
+xarray-validate is maintained by [Vincent Leroy](https://github.com/leroyvn).
+
+The xarray-validate maintainers acknowledge the work of the xarray-schema
+project creators and maintainers.

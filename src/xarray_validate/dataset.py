@@ -1,4 +1,6 @@
-from typing import Callable, ClassVar, Dict, Iterable, Optional, Union
+from __future__ import annotations
+
+from typing import Callable, Dict, Iterable, Optional, Union
 
 import attrs as _attrs
 import xarray as xr
@@ -21,15 +23,6 @@ class DatasetSchema(BaseSchema):
     checks : list of callables, optional
         List of callables that will further validate the Dataset.
     """
-
-    _json_schema: ClassVar = {
-        "type": "object",
-        "properties": {
-            "data_vars": {"type": "object"},
-            "coords": {"type": "object"},
-            "attrs": {"type": "object"},
-        },
-    }
 
     data_vars: Optional[Dict[str, Optional[DataArraySchema]]] = _attrs.field(
         default=None,
@@ -57,23 +50,40 @@ class DatasetSchema(BaseSchema):
         validator=_attrs.validators.deep_iterable(_attrs.validators.is_callable()),
     )
 
+    def serialize(self):
+        obj = {
+            "data_vars": {},
+            "attrs": self.attrs.serialize() if self.attrs is not None else {},
+        }
+        if self.data_vars:
+            for key, var in self.data_vars.items():
+                obj["data_vars"][key] = var.serialize()
+        if self.coords:
+            obj["coords"] = self.coords.serialize()
+        return obj
+
     @classmethod
-    def from_json(cls, obj: dict):
+    def deserialize(cls, obj: dict):
         kwargs = {}
         if "data_vars" in obj:
             kwargs["data_vars"] = {
-                k: DataArraySchema.from_json(v) for k, v in obj["data_vars"].items()
+                k: DataArraySchema.convert(v) for k, v in obj["data_vars"].items()
             }
         if "coords" in obj:
-            kwargs["coords"] = {
-                k: CoordsSchema.from_json(v) for k, v in obj["coords"].items()
-            }
+            kwargs["coords"] = CoordsSchema(
+                {k: DataArraySchema.convert(v) for k, v in obj["coords"].items()}
+            )
         if "attrs" in obj:
             kwargs["attrs"] = {
-                k: AttrsSchema.from_json(v) for k, v in obj["attrs"].items()
+                k: AttrsSchema.convert(v) for k, v in obj["attrs"].items()
             }
 
         return cls(**kwargs)
+
+    @classmethod
+    def from_dataset(cls, value):
+        ds_schema = value.to_dict(data=False)
+        return cls.deserialize(ds_schema)
 
     def validate(self, ds: xr.Dataset) -> None:
         """
@@ -103,7 +113,7 @@ class DatasetSchema(BaseSchema):
                         da_schema.validate(ds.data_vars[key])
 
         if self.coords is not None:  # pragma: no cover
-            raise NotImplementedError("coords schema not implemented yet")
+            self.coords.validate(ds.coords)
 
         if self.attrs:
             self.attrs.validate(ds.attrs)
@@ -111,16 +121,3 @@ class DatasetSchema(BaseSchema):
         if self.checks:
             for check in self.checks:
                 check(ds)
-
-    @property
-    def json(self):
-        obj = {
-            "data_vars": {},
-            "attrs": self.attrs.json if self.attrs is not None else {},
-        }
-        if self.data_vars:
-            for key, var in self.data_vars.items():
-                obj["data_vars"][key] = var.json
-        if self.coords:
-            obj["coords"] = self.coords.json
-        return obj

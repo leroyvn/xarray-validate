@@ -1,26 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Any, ClassVar, Dict, Hashable, Optional, Tuple, Union
+from typing import Any, Dict, Hashable, Optional, Tuple, Union
 
 import attrs as _attrs
 import numpy as np
 from numpy import dtype
 from numpy.typing import DTypeLike
 
+from . import converters
 from .base import BaseSchema, SchemaError
 from .types import ChunksT, DimsT, ShapeT
-
-
-def _array_type_converter(value):
-    if value == "<class 'dask.array.core.Array'>":
-        import dask.array as da
-
-        return da.Array
-    elif value == "<class 'numpy.ndarray'>":
-        return np.ndarray
-    else:
-        return value
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
@@ -34,24 +24,16 @@ class DTypeSchema(BaseSchema):
         DataArray dtype.
     """
 
-    _json_schema: ClassVar[Dict[str, Any]] = {"type": "string"}
-
     dtype: dtype = _attrs.field(converter=np.dtype)
 
-    @classmethod
-    def from_json(cls, obj) -> DTypeSchema:
+    def serialize(self):
         # Inherit docstring
-        if obj in [
-            "floating",
-            "integer",
-            "signedinteger",
-            "unsignedinteger",
-            "generic",
-        ]:
-            dtype = getattr(np, obj)
-        else:
-            dtype = obj
-        return cls(dtype)
+        return self.dtype.str
+
+    @classmethod
+    def deserialize(cls, obj):
+        # Inherit docstring
+        return cls(obj)
 
     def validate(self, dtype: DTypeLike) -> None:
         """
@@ -66,11 +48,6 @@ class DTypeSchema(BaseSchema):
                 f"dtype mismatch: got {repr(dtype)}, expected {repr(self.dtype)}"
             )
 
-    @property
-    def json(self) -> str:
-        # Inherit docstring
-        return self.dtype.str
-
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class DimsSchema(BaseSchema):
@@ -83,11 +60,6 @@ class DimsSchema(BaseSchema):
         DataArray dimensions. ``None`` may be used as a wildcard.
     """
 
-    _json_schema: ClassVar[Dict[str, Any]] = {
-        "type": "array",
-        "items": {"type": ["string", "null"]},
-    }
-
     dims: DimsT = _attrs.field(
         converter=lambda x: tuple(x) if not isinstance(x, str) else x,
         validator=_attrs.validators.deep_iterable(
@@ -97,8 +69,12 @@ class DimsSchema(BaseSchema):
         ),
     )
 
+    def serialize(self) -> list:
+        # Inherit docstring
+        return list(self.dims)
+
     @classmethod
-    def from_json(cls, obj: DimsT) -> DimsSchema:
+    def deserialize(cls, obj: DimsT) -> DimsSchema:
         # Inherit docstring
         return cls(obj)
 
@@ -122,11 +98,6 @@ class DimsSchema(BaseSchema):
                     f"dimension mismatch in axis {i}: got {actual}, expected {expected}"
                 )
 
-    @property
-    def json(self) -> list:
-        # Inherit docstring
-        return list(self.dims)
-
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class ShapeSchema(BaseSchema):
@@ -139,8 +110,6 @@ class ShapeSchema(BaseSchema):
         Shape of the DataArray. ``None`` may be used as a wildcard.
     """
 
-    _json_schema: ClassVar[Dict[str, Any]] = {"type": "array"}
-
     shape: ShapeT = _attrs.field(
         converter=lambda x: tuple(x) if not isinstance(x, int) else x,
         validator=_attrs.validators.deep_iterable(
@@ -150,8 +119,12 @@ class ShapeSchema(BaseSchema):
         ),
     )
 
+    def serialize(self) -> list:
+        # Inherit docstring
+        return list(self.shape)
+
     @classmethod
-    def from_json(cls, obj: ShapeT):
+    def deserialize(cls, obj: ShapeT):
         # Inherit docstring
         return cls(obj)
 
@@ -176,11 +149,6 @@ class ShapeSchema(BaseSchema):
                     f"shape mismatch in axis {i}: got {actual}, expected {expected}"
                 )
 
-    @property
-    def json(self) -> list:
-        # Inherit docstring
-        return list(self.shape)
-
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class NameSchema(BaseSchema):
@@ -193,12 +161,14 @@ class NameSchema(BaseSchema):
         Name definition.
     """
 
-    _json_schema: ClassVar[Dict[str, Any]] = {"type": "string"}
-
     name: str = _attrs.field(converter=str)
 
+    def serialize(self) -> str:
+        # Inherit docstring
+        return self.name
+
     @classmethod
-    def from_json(cls, obj: str):
+    def deserialize(cls, obj: str):
         # Inherit docstring
         return cls(obj)
 
@@ -221,11 +191,6 @@ class NameSchema(BaseSchema):
         if self.name != name:
             raise SchemaError(f"name mismatch: got {name}, expected {self.name}")
 
-    @property
-    def json(self) -> str:
-        # Inherit docstring
-        return self.name
-
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class ChunksSchema(BaseSchema):
@@ -240,14 +205,25 @@ class ChunksSchema(BaseSchema):
         may be used as a wildcard.
     """
 
-    _json_schema: ClassVar[Dict[str, Any]] = {"type": ["boolean", "object"]}
-
     chunks: ChunksT = _attrs.field(
         validator=_attrs.validators.instance_of((bool, dict))
     )
 
+    def serialize(self) -> Union[bool, Dict[str, Any]]:
+        # Inherit docstring
+        if isinstance(self.chunks, bool):
+            return self.chunks
+        else:
+            obj = {}
+            for key, val in self.chunks.items():
+                if isinstance(val, Iterable):
+                    obj[key] = list(val)
+                else:
+                    obj[key] = val
+            return obj
+
     @classmethod
-    def from_json(cls, obj: dict):
+    def deserialize(cls, obj: dict):
         # Inherit docstring
         return cls(obj)
 
@@ -305,20 +281,6 @@ class ChunksSchema(BaseSchema):
         else:
             raise ValueError(f"got unknown chunks type: {type(self.chunks)}")
 
-    @property
-    def json(self) -> Union[bool, Dict[str, Any]]:
-        # Inherit docstring
-        if isinstance(self.chunks, bool):
-            return self.chunks
-        else:
-            obj = {}
-            for key, val in self.chunks.items():
-                if isinstance(val, Iterable):
-                    obj[key] = list(val)
-                else:
-                    obj[key] = val
-            return obj
-
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class ArrayTypeSchema(BaseSchema):
@@ -331,14 +293,17 @@ class ArrayTypeSchema(BaseSchema):
         Array type definition.
     """
 
-    _json_schema: ClassVar[Dict[str, Any]] = {"type": "string"}
-
     array_type: type = _attrs.field(
-        converter=_array_type_converter, validator=_attrs.validators.instance_of(type)
+        converter=converters.array_type_converter,
+        validator=_attrs.validators.instance_of(type),
     )
 
+    def serialize(self) -> str:
+        # Inherit docstring
+        return str(self.array_type)
+
     @classmethod
-    def from_json(cls, obj: str):
+    def deserialize(cls, obj: str):
         return cls(obj)
 
     def validate(self, array: Any) -> None:
@@ -355,11 +320,6 @@ class ArrayTypeSchema(BaseSchema):
                 f"array type mismatch: got {type(array)}, expected {self.array_type}"
             )
 
-    @property
-    def json(self) -> str:
-        # Inherit docstring
-        return str(self.array_type)
-
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class AttrSchema(BaseSchema):
@@ -375,21 +335,20 @@ class AttrSchema(BaseSchema):
         Attribute value definition. ``None`` may be used as a wildcard.
     """
 
-    _json_schema: ClassVar[Dict[str, Any]] = {
-        "type": "string",
-        "value": ["string", "number", "array", "boolean", "null"],
-    }
-
     type: Optional[str] = _attrs.field(
         default=None,
         validator=_attrs.validators.optional(_attrs.validators.instance_of(type)),
     )
     value: Optional[Any] = _attrs.field(default=None)
 
-    @classmethod
-    def from_json(cls, obj: str):
+    def serialize(self) -> dict:
         # Inherit docstring
-        return cls(obj)
+        return {"type": self.type, "value": self.value}
+
+    @classmethod
+    def deserialize(cls, obj):
+        # Inherit docstring
+        return cls(**obj)
 
     def validate(self, attr: Any):
         """
@@ -410,11 +369,6 @@ class AttrSchema(BaseSchema):
             if self.value is not None and self.value != attr:
                 raise SchemaError(f"name {attr} != {self.value}")
 
-    @property
-    def json(self) -> dict:
-        # Inherit docstring
-        return {"type": self.type, "value": self.value}
-
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class AttrsSchema(BaseSchema):
@@ -433,41 +387,29 @@ class AttrsSchema(BaseSchema):
         Whether to allow coordinates not included in ``attrs`` dict.
     """
 
-    _json_schema: ClassVar[Dict[str, Any]] = {
-        "type": "object",
-        "properties": {
-            "require_all_keys": {
-                "type": "boolean"
-            },  # Question: is this the same as JSON's additionalProperties?
-            "allow_extra_keys": {"type": "boolean"},
-            "attrs": {"type": "object"},
-        },
-    }
-
     attrs: Dict[Hashable, AttrSchema] = _attrs.field(converter=dict)
     require_all_keys: bool = _attrs.field(default=True)
     allow_extra_keys: bool = _attrs.field(default=True)
 
-    @classmethod
-    def from_json(cls, obj: dict):
+    def serialize(self) -> dict:
         # Inherit docstring
-        attrs = {}
-        if "attrs" not in obj:
-            raise ValueError("missing 'attrs' field")
+        obj = {
+            "require_all_keys": self.require_all_keys,
+            "allow_extra_keys": self.allow_extra_keys,
+            "attrs": {k: v.serialize() for k, v in self.attrs.items()},
+        }
+        return obj
 
-        for key, val in obj["attrs"].items():
-            if val is None:
-                val = {}
-            attrs[key] = AttrSchema(**val)
+    @classmethod
+    def deserialize(cls, obj: dict):
+        # Inherit docstring
+        if "attrs" in obj:
+            attrs = obj.pop("attrs", {})
+        else:
+            attrs = obj
 
-        kwargs = {}
-
-        if "require_all_keys" in obj:
-            kwargs["require_all_keys"] = obj["require_all_keys"]
-        if "allow_extra_keys" in obj:
-            kwargs["allow_extra_keys"] = obj["allow_extra_keys"]
-
-        return cls(attrs, **kwargs)
+        attrs = {k: AttrSchema.convert(v) for k, v in list(attrs.items())}
+        return cls(attrs, **obj)
 
     def validate(self, attrs: Any) -> None:
         """
@@ -494,13 +436,3 @@ class AttrsSchema(BaseSchema):
                 raise SchemaError(f"key {key} not in attrs")
             else:
                 attr_schema.validate(attrs[key])
-
-    @property
-    def json(self) -> dict:
-        # Inherit docstring
-        obj = {
-            "require_all_keys": self.require_all_keys,
-            "allow_extra_keys": self.allow_extra_keys,
-            "attrs": {k: v.json for k, v in self.attrs.items()},
-        }
-        return obj

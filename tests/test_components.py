@@ -1,5 +1,4 @@
 import dask.array
-import jsonschema
 import numpy as np
 import pytest
 import xarray as xr
@@ -112,18 +111,11 @@ def test_component_schema(component, schema_args, validate, json):
             schema.validate(v)
 
     # JSON checks
-    assert schema.json == json, f"JSON export of {component} failed"
-    assert isinstance(
-        schema.to_json(), str
-    ), f"JSON export of {component} conversion to str failed"
-    (
-        jsonschema.validate(schema.json, schema._json_schema),
-        f"JSON export of {component} does not comply with JSON schema",
-    )
+    assert schema.serialize() == json, f"JSON export of {component} failed"
 
     # JSON roundtrip
     assert (
-        component.from_json(schema.json).json == json
+        component.deserialize(schema.serialize()).serialize() == json
     ), f"JSON roundtrip of {component} failed"
 
 
@@ -138,8 +130,8 @@ def test_component_schema(component, schema_args, validate, json):
 def test_attr_schema(type, value, validate, json):
     schema = AttrSchema(type=type, value=value)
     schema.validate(validate)
-    assert schema.json == json
-    # assert isinstance(schema.to_json(), str)
+    assert schema.serialize() == json
+    # assert isinstance(schema.serialize(), str)
 
 
 @pytest.mark.parametrize(
@@ -215,7 +207,6 @@ def test_component_raises_schema_error(component, schema_args, value, match):
         if component in [ChunksSchema]:  # special case construction
             schema.validate(*value)
         else:
-            print(schema)
             schema.validate(value)
 
 
@@ -234,4 +225,4 @@ def test_unknown_array_type_raises():
         match=r"'array_type' must be <class 'type'> "
         r"\(got 'foo.array' that is a <class 'str'>\).",
     ):
-        ArrayTypeSchema.from_json("foo.array")
+        ArrayTypeSchema.deserialize("foo.array")

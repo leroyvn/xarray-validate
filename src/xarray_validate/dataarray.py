@@ -11,6 +11,7 @@ from typing import (
 )
 
 import attrs as _attrs
+import numpy as np
 import xarray as xr
 
 from .base import BaseSchema, SchemaError
@@ -36,7 +37,7 @@ class CoordsSchema(BaseSchema):
         Dict of coordinate keys and ``DataArraySchema`` objects
 
     require_all_keys : bool
-        Whether require to all coordinates included in ``coords``
+        Whether to require to all coordinates included in ``coords``
 
     allow_extra_keys : bool
         Whether to allow coordinates not included in ``coords`` dict
@@ -46,26 +47,27 @@ class CoordsSchema(BaseSchema):
     SchemaError
     """
 
-    _json_schema = {
-        "type": "object",
-        "properties": {
-            "require_all_keys": {
-                "type": "boolean"
-            },  # Question: is this the same as JSON's additionalProperties?
-            "allow_extra_keys": {"type": "boolean"},
-            "coords": {"type": "object"},
-        },
-    }
-
     coords: Dict[str, DataArraySchema] = _attrs.field()
     require_all_keys: bool = _attrs.field(default=True)
     allow_extra_keys: bool = _attrs.field(default=True)
 
+    def serialize(self) -> dict:
+        obj = {
+            "require_all_keys": self.require_all_keys,
+            "allow_extra_keys": self.allow_extra_keys,
+            "coords": {k: v.serialize() for k, v in self.coords.items()},
+        }
+        return obj
+
     @classmethod
-    def from_json(cls, obj: dict):
-        coords = obj.pop("coords", {})
-        coords = {k: DataArraySchema.from_json(v) for k, v in list(coords.items())}
-        return cls(coords, **obj)
+    def deserialize(cls, obj: dict):
+        if "coords" in obj:
+            coords = obj.pop("coords", {})
+        else:
+            coords = obj
+
+        coords = {k: DataArraySchema.convert(v) for k, v in list(coords.items())}
+        return cls(coords=coords, **obj)
 
     def validate(self, coords: Mapping[str, Any]) -> None:
         """
@@ -94,15 +96,6 @@ class CoordsSchema(BaseSchema):
             else:
                 da_schema.validate(coords[key])
 
-    @property
-    def json(self) -> dict:
-        obj = {
-            "require_all_keys": self.require_all_keys,
-            "allow_extra_keys": self.allow_extra_keys,
-            "coords": {k: v.json for k, v in self.coords.items()},
-        }
-        return obj
-
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class DataArraySchema(BaseSchema):
@@ -112,24 +105,27 @@ class DataArraySchema(BaseSchema):
     Parameters
     ----------
     dtype : DTypeLike or str or DTypeSchema, optional
-        Datatype of the the variable. If a string is specified, it must be a
+        Data type validation schema. If a string is specified, it must be a
         valid NumPy data type value.
 
     shape : ShapeT or tuple or ShapeSchema, optional
-        Shape of the DataArray.
+        Shape validation schema.
 
     dims : DimsT or list of str or DimsSchema, optional
-        Dimensions of the DataArray.
+        Dimensions validation schema.
+
+    name : str, optional
+        Name validation schema.
 
     coords : CoordsSchema, optional
-        Coordinates of the DataArray.
+        Coordinates validation schema.
 
     chunks : bool or dict or ChunksSchema, optional
         If bool, specifies whether the DataArray is chunked or not, agnostic to
         chunk sizes. If dict, includes the expected chunks for the DataArray.
 
-    name : str, optional
-        Name of the DataArray.
+    attrs : AttrsSchema, optional
+        Attributes validation schema.
 
     array_type : type, optional
         Type of the underlying data in a DataArray (*e.g.* :class:`numpy.ndarray`).
@@ -138,7 +134,6 @@ class DataArraySchema(BaseSchema):
         List of callables that will further validate the DataArray.
     """
 
-    _json_schema: ClassVar = {"type": "object"}
     _schema_slots: ClassVar = [
         "dtype",
         "dims",
@@ -150,66 +145,89 @@ class DataArraySchema(BaseSchema):
         "array_type",
     ]
 
-    dtype: Optional[DTypeSchema] = _attrs.field(
+    dtype: np.dtype = _attrs.field(
         default=None,
-        converter=_attrs.converters.optional(
-            lambda x: x if isinstance(x, DTypeSchema) else DTypeSchema(x)
-        ),
+        converter=_attrs.converters.optional(DTypeSchema.convert),
     )
 
     shape: Optional[ShapeSchema] = _attrs.field(
         default=None,
-        converter=_attrs.converters.optional(
-            lambda x: x if isinstance(x, ShapeSchema) else ShapeSchema(x)
-        ),
+        converter=_attrs.converters.optional(ShapeSchema.convert),
     )
 
     dims: Optional[DimsSchema] = _attrs.field(
         default=None,
-        converter=_attrs.converters.optional(
-            lambda x: x if isinstance(x, DimsSchema) else DimsSchema(x)
-        ),
+        converter=_attrs.converters.optional(DimsSchema.convert),
     )
 
     name: Optional[NameSchema] = _attrs.field(
         default=None,
-        converter=_attrs.converters.optional(
-            lambda x: x if isinstance(x, NameSchema) else NameSchema(x)
-        ),
+        converter=_attrs.converters.optional(NameSchema.convert),
     )
 
     coords: Optional[CoordsSchema] = _attrs.field(
         default=None,
-        converter=_attrs.converters.optional(
-            lambda x: x if isinstance(x, CoordsSchema) else CoordsSchema(x)
-        ),
+        converter=_attrs.converters.optional(CoordsSchema.convert),
     )
 
     chunks: Optional[ChunksSchema] = _attrs.field(
         default=None,
-        converter=_attrs.converters.optional(
-            lambda x: x if isinstance(x, ChunksSchema) else ChunksSchema(x)
-        ),
+        converter=_attrs.converters.optional(ChunksSchema.convert),
     )
 
     attrs: Optional[AttrsSchema] = _attrs.field(
         default=None,
-        converter=_attrs.converters.optional(
-            lambda x: x if isinstance(x, AttrsSchema) else AttrsSchema(x)
-        ),
+        converter=_attrs.converters.optional(AttrsSchema.convert),
     )
 
     array_type: Optional[ArrayTypeSchema] = _attrs.field(
         default=None,
-        converter=_attrs.converters.optional(
-            lambda x: x if isinstance(x, ArrayTypeSchema) else ArrayTypeSchema(x)
-        ),
+        converter=_attrs.converters.optional(ArrayTypeSchema.convert),
     )
 
     checks: List[Callable] = _attrs.field(
         factory=list,
         validator=_attrs.validators.deep_iterable(_attrs.validators.is_callable()),
     )
+
+    def serialize(self) -> dict:
+        obj = {}
+        for slot in self._schema_slots:
+            try:
+                obj[slot] = getattr(self, slot).serialize()
+            except AttributeError:
+                pass
+        return obj
+
+    @classmethod
+    def deserialize(cls, obj: dict):
+        kwargs = {}
+
+        if "dtype" in obj:
+            kwargs["dtype"] = DTypeSchema.convert(obj["dtype"])
+        if "shape" in obj:
+            kwargs["shape"] = ShapeSchema.convert(obj["shape"])
+        if "dims" in obj:
+            kwargs["dims"] = DimsSchema.convert(obj["dims"])
+        if "name" in obj:
+            kwargs["name"] = NameSchema.convert(obj["name"])
+        if "coords" in obj:
+            kwargs["coords"] = CoordsSchema.convert(obj["coords"])
+        if "chunks" in obj:
+            kwargs["chunks"] = ChunksSchema.convert(obj["chunks"])
+        if "array_type" in obj:
+            kwargs["array_type"] = ArrayTypeSchema.convert(obj["array_type"])
+        if "attrs" in obj:
+            kwargs["attrs"] = AttrsSchema.convert(obj["attrs"])
+
+        return cls(**kwargs)
+
+    @classmethod
+    def from_dataarray(cls, value: xr.DataArray):
+        da_schema = value.to_dict(data=False)
+        da_schema["coords"] = {"coords": da_schema["coords"]}
+        da_schema["attrs"] = {"attrs": da_schema["attrs"]}
+        return cls.deserialize(da_schema)
 
     def validate(self, da: xr.DataArray) -> None:
         """
@@ -253,36 +271,3 @@ class DataArraySchema(BaseSchema):
 
         for check in self.checks:
             check(da)
-
-    @property
-    def json(self) -> dict:
-        obj = {}
-        for slot in self._schema_slots:
-            try:
-                obj[slot] = getattr(self, slot).json
-            except AttributeError:
-                pass
-        return obj
-
-    @classmethod
-    def from_json(cls, obj: dict):
-        kwargs = {}
-
-        if "dtype" in obj:
-            kwargs["dtype"] = DTypeSchema.from_json(obj["dtype"])
-        if "shape" in obj:
-            kwargs["shape"] = ShapeSchema.from_json(obj["shape"])
-        if "dims" in obj:
-            kwargs["dims"] = DimsSchema.from_json(obj["dims"])
-        if "name" in obj:
-            kwargs["name"] = NameSchema.from_json(obj["name"])
-        if "coords" in obj:
-            kwargs["coords"] = CoordsSchema.from_json(obj["coords"])
-        if "chunks" in obj:
-            kwargs["chunks"] = ChunksSchema.from_json(obj["chunks"])
-        if "array_type" in obj:
-            kwargs["array_type"] = ArrayTypeSchema.from_json(obj["array_type"])
-        if "attrs" in obj:
-            kwargs["attrs"] = AttrsSchema.from_json(obj["attrs"])
-
-        return cls(**kwargs)
