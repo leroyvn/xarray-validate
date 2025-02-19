@@ -90,8 +90,21 @@ Validating Datasets
 
 TBD
 
-Loading schemas from serialized data structure
--------------------------
+.. doctest::
+
+    >>> from xarray_validate import DatasetSchema
+    >>> ds = xr.Dataset(
+    ...     {
+    ...         "x": xr.DataArray(np.arange(4) - 2, dims="x"),
+    ...         "foo": xr.DataArray(np.ones(4, dtype="i4"), dims="x"),
+    ...         "bar": xr.DataArray(
+    ...             np.arange(8, dtype=np.float64).reshape(4, 2), dims=("x", "y")
+    ...         ),
+    ...     }
+    ... )
+
+Loading schemas from serialized data structures
+-----------------------------------------------
 
 All component schemas have a :meth:`deserialize` method that allows to
 initialize them from basic Python types. The JSON schema for each component maps
@@ -114,5 +127,24 @@ to the argument of the respective schema constructor:
     ...     }
     ... )
     >>> schema.validate(da)
+
+This also applies to dataset schemas:
+
+.. doctest::
+
+    >>> schema = DatasetSchema.deserialize(
+    ...     {
+    ...         "data_vars": {
+    ...             "foo": {"dtype": "<i4", "dims": ["x"], "shape": [4]},
+    ...             "bar": {"dtype": "<f8", "dims": ["x", "y"], "shape": [4, 2]},
+    ...         },
+    ...         "coords": {
+    ...             "coords": {
+    ...                 "x": {"dtype": "<i8", "dims": ["x"], "shape": [4]}
+    ...             },
+    ...         },
+    ...     }
+    ... )
+    >>> schema.validate(ds)
 
 TBD (include YAML)

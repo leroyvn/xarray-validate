@@ -6,7 +6,7 @@ import attrs as _attrs
 import xarray as xr
 
 from .base import BaseSchema, SchemaError
-from .components import AttrSchema, AttrsSchema
+from .components import AttrsSchema
 from .dataarray import CoordsSchema, DataArraySchema
 
 
@@ -19,6 +19,12 @@ class DatasetSchema(BaseSchema):
     ----------
     data_vars : dict, optional
         Per-variable :class:`.DataArraySchema`\ s.
+
+    coords : CoordsSchema, optional
+        Coordinate validation schema.
+
+    attrs : AttrsSchema, optional
+        Attributes value validation schema.
 
     checks : list of callables, optional
         List of callables that will further validate the Dataset.
@@ -34,11 +40,11 @@ class DatasetSchema(BaseSchema):
         ),
     )
 
-    coords: Union[CoordsSchema, Dict[str, DataArraySchema], None] = _attrs.field(
-        default=None
+    coords: Union[CoordsSchema, None] = _attrs.field(
+        default=None, converter=_attrs.converters.optional(CoordsSchema.convert)
     )
 
-    attrs: Union[AttrsSchema, Dict[str, AttrSchema], None] = _attrs.field(
+    attrs: Union[AttrsSchema, None] = _attrs.field(
         default=None,
         converter=_attrs.converters.optional(
             lambda x: x if isinstance(x, AttrsSchema) else AttrsSchema(x)
@@ -65,18 +71,15 @@ class DatasetSchema(BaseSchema):
     @classmethod
     def deserialize(cls, obj: dict):
         kwargs = {}
+
         if "data_vars" in obj:
             kwargs["data_vars"] = {
                 k: DataArraySchema.convert(v) for k, v in obj["data_vars"].items()
             }
         if "coords" in obj:
-            kwargs["coords"] = CoordsSchema(
-                {k: DataArraySchema.convert(v) for k, v in obj["coords"].items()}
-            )
+            kwargs["coords"] = CoordsSchema.convert(obj["coords"])
         if "attrs" in obj:
-            kwargs["attrs"] = {
-                k: AttrsSchema.convert(v) for k, v in obj["attrs"].items()
-            }
+            kwargs["attrs"] = AttrsSchema.convert(obj["attrs"])
 
         return cls(**kwargs)
 

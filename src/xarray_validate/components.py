@@ -404,12 +404,14 @@ class AttrsSchema(BaseSchema):
     def deserialize(cls, obj: dict):
         # Inherit docstring
         if "attrs" in obj:
-            attrs = obj.pop("attrs", {})
+            attrs = obj["attrs"]
+            kwargs = {k: v for k, v in obj.items() if k != "attrs"}
         else:
             attrs = obj
+            kwargs = {}
 
         attrs = {k: AttrSchema.convert(v) for k, v in list(attrs.items())}
-        return cls(attrs, **obj)
+        return cls(attrs, **kwargs)
 
     def validate(self, attrs: Any) -> None:
         """
