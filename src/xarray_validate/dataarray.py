@@ -62,12 +62,14 @@ class CoordsSchema(BaseSchema):
     @classmethod
     def deserialize(cls, obj: dict):
         if "coords" in obj:
-            coords = obj.pop("coords", {})
+            coords = obj["coords"]
+            kwargs = {k: v for k, v in obj.items() if k != "coords"}
         else:
             coords = obj
+            kwargs = {}
 
         coords = {k: DataArraySchema.convert(v) for k, v in list(coords.items())}
-        return cls(coords=coords, **obj)
+        return cls(coords=coords, **kwargs)
 
     def validate(self, coords: Mapping[str, Any]) -> None:
         """
