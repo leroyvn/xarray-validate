@@ -1,0 +1,6 @@
+autodocsumm>=0.2.14
+sphinx>=7
+furo
+sphinx-autobuild>=2021
+sphinx-copybutton>=0.5.2
+sphinx-autodoc-typehints>=2
