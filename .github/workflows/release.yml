@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  release-pypi:
+    name: Release to PyPI
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rye
+        uses: eifinger/setup-rye@v1
+
+      - name: Build wheels
+        run: |
+          rye build
+
+      - name: Test build
+        run: |
+          python3 -m venv fresh_env
+          . fresh_env/bin/activate
+          pip install dist/*.whl
+          fresh_env/bin/python -c "import xarray_validate; print(xarray_validate.__version__)"
+
+      - name: Upload to PyPI
+        run: |
+          rye publish --token ${{ secrets.PYPI_TOKEN }} --yes
