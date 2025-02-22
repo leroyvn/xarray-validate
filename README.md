@@ -14,17 +14,17 @@
 [xarray-schema](https://github.com/xarray-contrib/xarray-schema).*
 
 I needed an xarray validation engine for one of my projects. The only solid
-contender I could see was xarray-schema, but its maintenance seems uncertain and
-its integration into the much larger Pandera project was not progressing quickly
-enough for me. I therefore decided to fork the project, refactor it and add the
-features I was missing.
+contender I could see was xarray-schema, but its maintenance seemed uncertain
+and the foreseen integration of its feature set into the much larger Pandera
+project was not progressing quickly enough for me. I therefore decided to fork
+the project, refactor it and add the features I was missing.
 
 ## Features
 
-* DataArray and Dataset validation ⬆️
-* Basic Python type serialization / deserialization ⬆️
+* ⬆️ DataArray and Dataset validation
+* ⬆️ Basic Python type serialization / deserialization
 * Construct schema from existing xarray data
-* ~~JSON roundtrip~~ (not guaranteed to work) 🚫
+* 🚫 ~~JSON roundtrip~~ (not guaranteed to work)
 
 ⬆️ Inherited from xarray-schema
 🚫 Won't do / won't fix
