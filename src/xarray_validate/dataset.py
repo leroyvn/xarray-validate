@@ -89,24 +89,8 @@ class DatasetSchema(BaseSchema):
         return cls.deserialize(ds_schema)
 
     def validate(self, ds: xr.Dataset) -> None:
-        """
-        Check if the Dataset complies with the Schema.
-
-        Parameters
-        ----------
-        ds : xr.Dataset
-            Dataset to be validated
-
-        Returns
-        -------
-        xr.Dataset
-            Validated Dataset
-
-        Raises
-        ------
-        SchemaError
-        """
-
+        # Inherit docstring
+        
         if self.data_vars is not None:
             for key, da_schema in self.data_vars.items():
                 if da_schema is not None:

@@ -41,10 +41,6 @@ class CoordsSchema(BaseSchema):
 
     allow_extra_keys : bool
         Whether to allow coordinates not included in ``coords`` dict
-
-    Raises
-    ------
-    SchemaError
     """
 
     coords: Dict[str, DataArraySchema] = _attrs.field()
@@ -72,15 +68,7 @@ class CoordsSchema(BaseSchema):
         return cls(coords=coords, **kwargs)
 
     def validate(self, coords: Mapping[str, Any]) -> None:
-        """
-        Validate coords
-
-        Parameters
-        ----------
-        coords : dict_like
-            coords of the DataArray. ``None`` may be used as a wildcard value
-            for dict values.
-        """
+        # Inherit docstring
 
         if self.require_all_keys:
             missing_keys = set(self.coords) - set(coords)
@@ -232,18 +220,8 @@ class DataArraySchema(BaseSchema):
         return cls.deserialize(da_schema)
 
     def validate(self, da: xr.DataArray) -> None:
-        """
-        Check if the DataArray complies with the Schema.
+        # Inherit docstring
 
-        Parameters
-        ----------
-        da : xr.DataArray
-            DataArray to be validated
-
-        Raises
-        ------
-        SchemaError
-        """
         if not isinstance(da, xr.DataArray):
             raise ValueError("Input must be a xarray.DataArray")
 

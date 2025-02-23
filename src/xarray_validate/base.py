@@ -11,11 +11,17 @@ class SchemaError(Exception):
 class BaseSchema(ABC):
     @abstractmethod
     def serialize(self):
+        """
+        Serialize schema to basic Python types.
+        """
         pass
 
     @classmethod
     @abstractmethod
     def deserialize(cls, obj):
+        """
+        Instantiate schema from basic Python types.
+        """
         pass
 
     @classmethod
@@ -26,3 +32,14 @@ class BaseSchema(ABC):
         if isinstance(value, cls):
             return value
         return cls.deserialize(value)
+
+    @abstractmethod
+    def validate(self, value: Any) -> None:
+        """
+        Validate object against this schema.
+
+        Raises
+        ------
+        SchemaError
+            If validation fails.
+        """

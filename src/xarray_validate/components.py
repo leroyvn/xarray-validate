@@ -36,13 +36,8 @@ class DTypeSchema(BaseSchema):
         return cls(obj)
 
     def validate(self, dtype: DTypeLike) -> None:
-        """
-        Validate dtype against this schema
+        # Inherit docstring
 
-        Parameters
-        ----------
-        dtype : DTypeLike
-        """
         if not np.issubdtype(dtype, self.dtype):
             raise SchemaError(
                 f"dtype mismatch: got {repr(dtype)}, expected {repr(self.dtype)}"
@@ -79,14 +74,8 @@ class DimsSchema(BaseSchema):
         return cls(obj)
 
     def validate(self, dims: DimsT) -> None:
-        """
-        Validate dimensions against this schema.
+        # Inherit docstring
 
-        Parameters
-        ----------
-        dims : DimsT
-            Tuple of dimension names. ``None`` may be used as a wildcard value.
-        """
         if len(self.dims) != len(dims):
             raise SchemaError(
                 f"dimension number mismatch: got {len(dims)}, expected {len(self.dims)}"
@@ -129,14 +118,8 @@ class ShapeSchema(BaseSchema):
         return cls(obj)
 
     def validate(self, shape: tuple) -> None:
-        """
-        Validate shape
+        # Inherit docstring
 
-        Parameters
-        ----------
-        shape : ShapeT
-            Shape to validate. ``None`` may be used as a wildcard value.
-        """
         if len(self.shape) != len(shape):
             raise SchemaError(
                 "dimension count mismatch: "
@@ -173,18 +156,8 @@ class NameSchema(BaseSchema):
         return cls(obj)
 
     def validate(self, name: Hashable) -> None:
-        """
-        Validate name
+        # Inherit docstring
 
-        Parameters
-        ----------
-        name : str
-            Name of the DataArray.
-
-        Notes
-        -----
-        Currently requires an exact string match.
-        """
         # TODO: support regular expressions
         # - http://json-schema.org/understanding-json-schema/reference/regular_expressions.html
         # - https://docs.python.org/3.9/library/re.html
@@ -234,7 +207,7 @@ class ChunksSchema(BaseSchema):
         shape: Tuple[int, ...],
     ) -> None:
         """
-        Validate chunks
+        Validate chunks against this schema.
 
         Parameters
         ----------
@@ -307,14 +280,8 @@ class ArrayTypeSchema(BaseSchema):
         return cls(obj)
 
     def validate(self, array: Any) -> None:
-        """
-        Validate an array's dtype.
+        # Inherit docstring
 
-        Parameters
-        ----------
-        array : array_like
-            Array whose type to validate. ``None`` may be used as a wildcard value.
-        """
         if not isinstance(array, self.array_type):
             raise SchemaError(
                 f"array type mismatch: got {type(array)}, expected {self.array_type}"
@@ -351,14 +318,8 @@ class AttrSchema(BaseSchema):
         return cls(**obj)
 
     def validate(self, attr: Any):
-        """
-        Validate attr.
+        # Inherit docstring
 
-        Parameters
-        ----------
-        attr : any
-            Attribute to validate against this schema.
-        """
         if self.type is not None:
             if not isinstance(attr, self.type):
                 raise SchemaError(
@@ -414,14 +375,7 @@ class AttrsSchema(BaseSchema):
         return cls(attrs, **kwargs)
 
     def validate(self, attrs: Any) -> None:
-        """
-        Validate attrs
-
-        Parameters
-        ----------
-        attrs : mapping
-            attrs dict, ``None`` may be used as a wildcard value.
-        """
+        # Inherit docstring
 
         if self.require_all_keys:
             missing_keys = set(self.attrs) - set(attrs)
