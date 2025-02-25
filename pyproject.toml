@@ -1,11 +1,29 @@
 [project]
 name = "xarray-validate"
-version = "0.1.0"
+version = "0.1.1"
 description = "Add your description here"
 authors = [{ name = "Vincent Leroy", email = "vincent.leroy@rayference.eu" }]
 dependencies = ["attrs", "numpy", "xarray"]
 readme = "README.md"
 requires-python = ">= 3.8"
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering",
+]
+
+[project.urls]
+Homepage = "https://github.com/leroyvn/xarray-validate/"
+Documentation = "https://xarray-validate.readthedocs.io/"
+Changelog = "https://github.com/leroyvn/xarray-validate/blob/main/CHANGELOG.md"
+Issues = "https://github.com/leroyvn/xarray-validate/issues/"
+Repository = "https://github.com/leroyvn/xarray-validate/"
 
 [project.optional-dependencies]
 dask = ["dask"]

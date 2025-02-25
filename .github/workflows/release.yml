@@ -6,8 +6,8 @@ on:
       - "*"
 
 jobs:
-  release-pypi:
-    name: Release to PyPI
+  build-wheels:
+    name: Build wheels
     runs-on: ubuntu-latest
 
     steps:
@@ -20,14 +20,15 @@ jobs:
           # Remove the leading 'v' from the tag (e.g., 'v1.2.3' -> '1.2.3')
           GIT_VERSION=${TAG#v}
           echo "Current git tag version: $GIT_VERSION"
-          echo "::set-output name=tag::$GIT_VERSION"
+          echo "GIT_VERSION=$GIT_VERSION" >> $GITHUB_ENV
 
       - name: Check if git tag matches version
         run: |
           # Extract version from pyproject.toml
           PY_VERSION=$(grep '^version = "' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
           echo "Version from pyproject.toml: $PY_VERSION"
-          if [ "$PY_VERSION" != "${{ steps.tag.outputs.tag }}" ]; then
+          echo "Current git tag version: $GIT_VERSION"
+          if [ "$PY_VERSION" != "$GIT_VERSION" ]; then
             echo "Git tag does not match version in pyproject.toml."
             exit 1
           else
@@ -48,6 +49,33 @@ jobs:
           pip install dist/*.whl
           fresh_env/bin/python -c "import xarray_validate; print(xarray_validate.__version__)"
 
-      - name: Upload to PyPI
-        run: |
-          rye publish --token ${{ secrets.PYPI_TOKEN }} --yes
+      - name: Store distribution packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+  publish-to-testpypi:
+    name: Publish Python distribution to TestPyPI
+    needs:
+      - build-wheels
+    runs-on: ubuntu-latest
+
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/xarray-validate
+
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish distribution to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
