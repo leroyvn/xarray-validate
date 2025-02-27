@@ -1,10 +1,8 @@
 # xarray-validate
 
 [![PyPI version](https://img.shields.io/pypi/v/xarray-validate?color=blue)](https://pypi.org/project/xarray-validate)
-
 [![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/leroyvn/xarray-validate/ci.yml?branch=main)](https://github.com/leroyvn/xarray-validate/actions/workflows/ci.yml)
 [![Documentation Status](https://img.shields.io/readthedocs/xarray-validate)](https://xarray-validate.readthedocs.io)
-
 [![Rye](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/mitsuhiko/rye/main/artwork/badge.json)](https://rye-up.com)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 

@@ -1,9 +1,13 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+import xarray_validate
+
 project = "xarray-validate"
 copyright = "2025, Vincent Leroy"
 author = "Vincent Leroy"
+release = xarray_validate.__version__
+version = xarray_validate.__version__
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -22,7 +26,6 @@ extensions = [
     "autodocsumm",
 ]
 
-templates_path = ["_templates"]
 source_suffix = [".rst", ".md"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
@@ -44,5 +47,5 @@ html_title = "xarray-validate"
 html_theme = "furo"
 html_theme_options = {
     "navigation_with_keys": True,
-    "sidebar_hide_name": True,
+    "sidebar_hide_name": False,
 }
