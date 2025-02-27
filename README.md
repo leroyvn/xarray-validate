@@ -10,7 +10,7 @@
 
 > This is a maintained refactor of
 > [xarray-schema](https://github.com/xarray-contrib/xarray-schema).
-> I needed an xarray validation engine for one of my projects. In saw in the
+> I needed an xarray validation engine for one of my projects. I saw in the
 > xarray-schema library a good start, but both its maintenance status and the
 > foreseen integration of its feature set into the much larger Pandera library
 > seemed uncertain. I therefore decided to fork the project, refactor it and add
