@@ -90,7 +90,7 @@ class DatasetSchema(BaseSchema):
 
     def validate(self, ds: xr.Dataset) -> None:
         # Inherit docstring
-        
+
         if self.data_vars is not None:
             for key, da_schema in self.data_vars.items():
                 if da_schema is not None:

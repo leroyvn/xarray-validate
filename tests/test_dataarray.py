@@ -88,7 +88,7 @@ def test_schema_from_dataarray(ds):
 
     schema = DataArraySchema.from_dataarray(da)
     schema.validate(da)
-    
+
     expected = {
         "dtype": "<i8",
         "dims": ["x"],
