@@ -31,6 +31,18 @@ from xarray_validate import (
         (DTypeSchema, "<i8", [np.int64, "int64", "i8"], "<i8"),
         (DimsSchema, ("foo", None), [("foo", "bar"), ("foo", "baz")], ["foo", None]),
         (DimsSchema, ("foo", "bar"), [("foo", "bar")], ["foo", "bar"]),
+        (
+            DimsSchema,
+            {"dims": ("foo", "bar"), "ordered": False},
+            [("foo", "bar")],
+            ["foo", "bar"],
+        ),
+        (
+            DimsSchema,
+            {"dims": ("foo", "bar"), "ordered": False},
+            [("bar", "foo")],
+            ["foo", "bar"],
+        ),
         (ShapeSchema, (1, 2, None), [(1, 2, 3), (1, 2, 5)], [1, 2, None]),
         (ShapeSchema, (1, 2, 3), [(1, 2, 3)], [1, 2, 3]),
         (NameSchema, "foo", ["foo"], "foo"),
@@ -98,7 +110,10 @@ def test_component_schema(component, schema_args, validate, json):
     """
     # Initialization
     try:
-        schema = component(schema_args)
+        if isinstance(schema_args, dict) and component in [DimsSchema]:
+            schema = component(**schema_args)
+        else:
+            schema = component(schema_args)
     except TypeError:
         print(f"init of {component} from {schema_args} failed")
         raise
@@ -114,9 +129,9 @@ def test_component_schema(component, schema_args, validate, json):
     assert schema.serialize() == json, f"JSON export of {component} failed"
 
     # JSON roundtrip
-    assert (
-        component.deserialize(schema.serialize()).serialize() == json
-    ), f"JSON roundtrip of {component} failed"
+    assert component.deserialize(schema.serialize()).serialize() == json, (
+        f"JSON roundtrip of {component} failed"
+    )
 
 
 @pytest.mark.parametrize(
