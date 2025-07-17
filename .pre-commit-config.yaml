@@ -24,3 +24,11 @@ repos:
     rev: v0.9.3
     hooks:
       - id: taplo-format
+  - repo: local
+    hooks:
+      - id: docs-lock
+        name: Export dev requirements to docs/requirements.txt
+        entry: uv run task docs-lock
+        language: system
+        files: 'pyproject\.toml|uv\.lock'
+        pass_filenames: false
