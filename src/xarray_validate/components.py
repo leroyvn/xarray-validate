@@ -5,12 +5,22 @@ from typing import Any, Dict, Hashable, Optional, Tuple, Union
 
 import attrs as _attrs
 import numpy as np
-from numpy import dtype
 from numpy.typing import DTypeLike
 
 from . import converters
 from .base import BaseSchema, SchemaError
 from .types import ChunksT, DimsT, ShapeT
+
+
+def _dtype_converter(value: DTypeLike):
+    # NumPy 2.x forbids conversion from generic dtypes to dtypes.
+    # Therefor we therefore use arbitrary defaults.
+    if value is np.integer:
+        value = np.int64
+    if value is np.floating:
+        value = np.float64
+
+    return np.dtype(value)
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
@@ -21,10 +31,11 @@ class DTypeSchema(BaseSchema):
     Parameters
     ----------
     dtype : DTypeLike
-        DataArray dtype.
+        DataArray dtype. Generic dtypes ``np.integer`` and ``np.floating`` will
+        be arbitrarily converted respectively to ``np.int64`` and ``np.float64``.
     """
 
-    dtype: dtype = _attrs.field(converter=np.dtype)
+    dtype: dtype = _attrs.field(converter=_dtype_converter)
 
     def serialize(self):
         # Inherit docstring
