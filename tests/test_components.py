@@ -29,8 +29,6 @@ from xarray_validate import (
         ),  # TODO: check Numpy 1
         (DTypeSchema, np.int32, [np.int32, "int32", "i4"], "<i4"),
         (DTypeSchema, "<i8", [np.int64, "int64", "i8"], "<i8"),
-        (DimsSchema, ("foo", None), [("foo", "bar"), ("foo", "baz")], ["foo", None]),
-        (DimsSchema, ("foo", "bar"), [("foo", "bar")], ["foo", "bar"]),
         (ShapeSchema, (1, 2, None), [(1, 2, 3), (1, 2, 5)], [1, 2, None]),
         (ShapeSchema, (1, 2, 3), [(1, 2, 3)], [1, 2, 3]),
         (NameSchema, "foo", ["foo"], "foo"),
@@ -114,9 +112,59 @@ def test_component_schema(component, schema_args, validate, json):
     assert schema.serialize() == json, f"JSON export of {component} failed"
 
     # JSON roundtrip
-    assert (
-        component.deserialize(schema.serialize()).serialize() == json
-    ), f"JSON roundtrip of {component} failed"
+    assert component.deserialize(schema.serialize()).serialize() == json, (
+        f"JSON roundtrip of {component} failed"
+    )
+
+
+@pytest.mark.parametrize(
+    "dims, ordered, validate, json",
+    [
+        (
+            ("foo", None),
+            None,
+            [("foo", "bar"), ("foo", "baz")],
+            ["foo", None],
+        ),
+        (
+            ("foo", "bar"),
+            None,
+            [("foo", "bar")],
+            ["foo", "bar"],
+        ),
+        (
+            ("foo", "bar"),
+            False,
+            [("foo", "bar"), ("bar", "foo")],
+            {"dims": ["foo", "bar"], "ordered": False},
+        ),
+        (
+            ("foo", None),
+            False,
+            [("foo", "bar"), ("bar", "foo")],
+            {"dims": ["foo", None], "ordered": False},
+        ),
+    ],
+)
+def test_dims_schema(dims, ordered, validate, json):
+    # Initialization
+    kwargs = {}
+    if ordered is not None:
+        kwargs["ordered"] = ordered
+
+    schema = DimsSchema(dims, **kwargs)
+
+    # Validation
+    for v in validate:
+        schema.validate(v)
+
+    # JSON checks
+    assert schema.serialize() == json
+
+    # JSON roundtrip
+    assert DimsSchema.deserialize(schema.serialize()).serialize() == json, (
+        "JSON roundtrip of DimsSchema failed"
+    )
 
 
 @pytest.mark.parametrize(
@@ -142,18 +190,6 @@ def test_attr_schema(type, value, validate, json):
             np.integer,
             np.float32,
             r"dtype mismatch: got <class 'numpy.float32'>, expected dtype\('int64'\)",
-        ),
-        (
-            DimsSchema,
-            ("foo", "bar"),
-            ("foo",),
-            "dimension number mismatch: got 1, expected 2",
-        ),
-        (
-            DimsSchema,
-            ("foo", "bar"),
-            ("foo", "baz"),
-            "dimension mismatch in axis 1: got baz, expected bar",
         ),
         (
             ShapeSchema,
@@ -208,6 +244,40 @@ def test_component_raises_schema_error(component, schema_args, value, match):
             schema.validate(*value)
         else:
             schema.validate(value)
+
+
+@pytest.mark.parametrize(
+    "dims, ordered, value, match",
+    [
+        (
+            ("foo", "bar"),
+            None,
+            ("foo",),
+            "dimension number mismatch: got 1, expected 2",
+        ),
+        (
+            ("foo", "bar"),
+            None,
+            ("foo", "baz"),
+            "dimension mismatch in axis 1: got baz, expected bar",
+        ),
+        (
+            ("foo", "bar"),
+            False,
+            ("foo", "baz"),
+            "dimension mismatch: expected bar is missing from actual dimension list "
+            r"\('foo', 'baz'\)",
+        ),
+    ],
+)
+def test_dims_raises_schema_error(dims, ordered, value, match):
+    kwargs = {}
+    if ordered is not None:
+        kwargs["ordered"] = ordered
+    schema = DimsSchema(dims, **kwargs)
+
+    with pytest.raises(SchemaError, match=match):
+        schema.validate(value)
 
 
 def test_chunks_schema_raises_for_invalid_chunks():
