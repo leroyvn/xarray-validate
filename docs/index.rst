@@ -14,9 +14,9 @@ xarray-validate v\ |release|.
 .. image:: https://img.shields.io/readthedocs/xarray-validate
    :target: https://xarray-validate.readthedocs.io
 
-.. image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/mitsuhiko/rye/main/artwork/badge.json
-    :target: https://rye.astral.sh
-    :alt: Rye
+.. image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json
+    :target: https://docs.astral.sh/uv/
+    :alt: uv
 
 .. image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json
     :target: https://github.com/astral-sh/ruff
