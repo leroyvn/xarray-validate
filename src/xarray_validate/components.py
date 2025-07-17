@@ -74,6 +74,7 @@ class DimsSchema(BaseSchema):
             )
         ),
     )
+    ordered: bool = _attrs.field(default=True)
 
     def serialize(self) -> list:
         # Inherit docstring
@@ -92,11 +93,24 @@ class DimsSchema(BaseSchema):
                 f"dimension number mismatch: got {len(dims)}, expected {len(self.dims)}"
             )
 
-        for i, (actual, expected) in enumerate(zip(dims, self.dims)):
-            if expected is not None and actual != expected:
+        if not self.ordered:
+            actual = set(dims)
+            expected = set(self.dims)
+
+            if actual != expected:
                 raise SchemaError(
-                    f"dimension mismatch in axis {i}: got {actual}, expected {expected}"
+                    "dimension mismatch: expected but not received "
+                    f"{expected - actual}, "
+                    f"and not expected but received {actual - expected}"
                 )
+
+        else:
+            for i, (actual, expected) in enumerate(zip(dims, self.dims)):
+                if expected is not None and actual != expected:
+                    raise SchemaError(
+                        f"dimension mismatch in axis {i}: "
+                        f"got {actual}, expected {expected}"
+                    )
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
