@@ -41,8 +41,8 @@ dev = [
   "sphinx-autodoc-typehints>=2",
   "sphinx-copybutton>=0.5.2",
   "sphinx>=7",
-  "xdoctest",
   "taskipy",
+  "xdoctest",
 ]
 
 [build-system]
@@ -85,6 +85,7 @@ relative-imports-order = "closest-to-furthest"
 docs = "sphinx-build -b html docs docs/_build/html"
 docs-clean = "rm -rf docs/_build/"
 docs-serve = "sphinx-autobuild docs docs/_build/html"
+docs-lock = "uv export --frozen --no-hashes --no-annotate --all-extras --dev --output-file docs/requirements.txt"
 test = "pytest"
 test-cov = "pytest --cov=src"
 test-cov-report = "pytest --cov=src --cov-report=html"
