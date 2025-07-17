@@ -66,6 +66,7 @@ roman-numerals-py==3.1.0 ; python_full_version >= '3.11'
 ruamel-yaml==0.18.14
 ruamel-yaml-clib==0.2.8 ; python_full_version < '3.9' and platform_python_implementation == 'CPython'
 ruamel-yaml-clib==0.2.12 ; python_full_version >= '3.9' and python_full_version < '3.14' and platform_python_implementation == 'CPython'
+ruff==0.12.3
 setuptools==75.3.2 ; python_full_version < '3.9'
 setuptools==80.9.0 ; python_full_version >= '3.9'
 six==1.17.0
