@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from typing import Any, Dict, Hashable, Optional, Tuple, Union
 
 import attrs as _attrs
@@ -64,6 +64,9 @@ class DimsSchema(BaseSchema):
     ----------
     dims : sequence of (str or None)
         DataArray dimensions. ``None`` may be used as a wildcard.
+
+    ordered : bool, optional
+        If ``False``, allow different dimension ordering.
     """
 
     dims: DimsT = _attrs.field(
@@ -75,14 +78,27 @@ class DimsSchema(BaseSchema):
         ),
     )
 
-    def serialize(self) -> list:
+    ordered: bool = _attrs.field(default=True)
+
+    def serialize(self) -> list | dict:
         # Inherit docstring
-        return list(self.dims)
+        dims = list(self.dims)
+        if self.ordered:
+            return dims
+        else:
+            return {"dims": dims, "ordered": bool(self.ordered)}
 
     @classmethod
-    def deserialize(cls, obj: DimsT) -> DimsSchema:
+    def deserialize(cls, obj: DimsT | dict) -> DimsSchema:
         # Inherit docstring
-        return cls(obj)
+        if isinstance(obj, Sequence):
+            dims = obj
+            kwargs = {}
+        else:
+            dims = obj["dims"]
+            kwargs = {k: v for k, v in obj.items() if k != "dims"}
+
+        return cls(dims, **kwargs)
 
     def validate(self, dims: DimsT) -> None:
         # Inherit docstring
@@ -92,11 +108,20 @@ class DimsSchema(BaseSchema):
                 f"dimension number mismatch: got {len(dims)}, expected {len(self.dims)}"
             )
 
-        for i, (actual, expected) in enumerate(zip(dims, self.dims)):
-            if expected is not None and actual != expected:
-                raise SchemaError(
-                    f"dimension mismatch in axis {i}: got {actual}, expected {expected}"
-                )
+        if self.ordered:
+            for i, (actual, expected) in enumerate(zip(dims, self.dims)):
+                if expected is not None and actual != expected:
+                    raise SchemaError(
+                        f"dimension mismatch in axis {i}: got {actual}, "
+                        f"expected {expected}"
+                    )
+        else:
+            for i, expected in enumerate(self.dims):
+                if expected is not None and expected not in dims:
+                    raise SchemaError(
+                        f"dimension mismatch: expected {expected} is missing "
+                        f"from actual dimension list {dims}"
+                    )
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
