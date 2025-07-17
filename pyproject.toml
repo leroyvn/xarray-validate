@@ -29,6 +29,22 @@ Repository = "https://github.com/leroyvn/xarray-validate/"
 dask = ["dask"]
 yaml = ["ruamel-yaml"]
 
+[dependency-groups]
+dev = [
+  "autodocsumm>=0.2.14",
+  "furo",
+  "pytest-cov",
+  "pytest",
+  "rich",
+  "setuptools", # Required for PyCharm to be happy
+  "sphinx-autobuild>=2021",
+  "sphinx-autodoc-typehints>=2",
+  "sphinx-copybutton>=0.5.2",
+  "sphinx>=7",
+  "xdoctest",
+  "taskipy",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -65,26 +81,10 @@ select = ["I", "E", "F"]
 [tool.ruff.lint.isort]
 relative-imports-order = "closest-to-furthest"
 
-[tool.rye]
-managed = true
-dev-dependencies = [
-  "autodocsumm>=0.2.14",
-  "furo",
-  "pytest-cov",
-  "pytest",
-  "rich",
-  "setuptools", # Required for PyCharm to be happy
-  "sphinx-autobuild>=2021",
-  "sphinx-autodoc-typehints>=2",
-  "sphinx-copybutton>=0.5.2",
-  "sphinx>=7",
-  "xdoctest",
-]
-
-[tool.rye.scripts]
-docs = { cmd = "sphinx-build -b html docs docs/_build/html" }
-docs-clean = { cmd = "rm -rf docs/_build/" }
-docs-serve = { cmd = "sphinx-autobuild docs docs/_build/html" }
+[tool.taskipy.tasks]
+docs = "sphinx-build -b html docs docs/_build/html"
+docs-clean = "rm -rf docs/_build/"
+docs-serve = "sphinx-autobuild docs docs/_build/html"
 test = "pytest"
 test-cov = "pytest --cov=src"
 test-cov-report = "pytest --cov=src --cov-report=html"
