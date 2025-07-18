@@ -1,6 +1,6 @@
 [project]
 name = "xarray-validate"
-version = "0.0.2"
+version = "0.0.3.dev0"
 description = "Add your description here"
 authors = [{ name = "Vincent Leroy", email = "vincent.leroy@rayference.eu" }]
 dependencies = ["attrs", "numpy", "xarray"]
