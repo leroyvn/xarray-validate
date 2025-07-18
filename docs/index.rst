@@ -63,7 +63,7 @@ Install from PyPI in your virtual environment:
 
 Available extras:
 
-* ``dask``: Validate xarrays with dask arrays.
+* ``dask``: Validate xarray containers based on dask arrays.
 * ``yaml``: Load schemas from YAML files.
 
 To install all extras:
