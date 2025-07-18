@@ -2,13 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
-## 0.0.2 — Upcoming release
+## 0.0.2 — 2025-07-18
 
 ### Added
 
 - Pre-commit hook for automatic documentation requirements export
 - Taskipy integration for command management
 - Support for PEP 735 dependency groups
+- `DimsSchema` now support unordered dimension checks
+  [#10](https://github.com/leroyvn/xarray-validate/pull/10)
 
 ### Fixed
 
