@@ -179,7 +179,6 @@ def test_attr_schema(type, value, validate, json):
     schema = AttrSchema(type=type, value=value)
     schema.validate(validate)
     assert schema.serialize() == json
-    # assert isinstance(schema.serialize(), str)
 
 
 @pytest.mark.parametrize(
