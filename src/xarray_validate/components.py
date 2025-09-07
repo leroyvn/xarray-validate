@@ -374,8 +374,8 @@ class AttrsSchema(BaseSchema):
 
     Parameters
     ----------
-    attrs : str or iterable of str
-        Attributes definition
+    attrs : dict
+        Attribute definitions.
 
     require_all_keys : bool
         Whether to require to all coordinates included in ``attrs``.
@@ -407,7 +407,12 @@ class AttrsSchema(BaseSchema):
             attrs = obj
             kwargs = {}
 
-        attrs = {k: AttrSchema.convert(v) for k, v in list(attrs.items())}
+        # None attribute definitions are allowed and will be converted to
+        # AttrSchema()
+        attrs = {
+            k: (AttrSchema.convert(v) if v is not None else AttrSchema())
+            for k, v in list(attrs.items())
+        }
         return cls(attrs, **kwargs)
 
     def validate(self, attrs: Any) -> None:
