@@ -33,6 +33,7 @@ yaml = ["ruamel-yaml"]
 dev = [
   "autodocsumm>=0.2.14",
   "furo",
+  "ipykernel",
   "pytest-cov",
   "pytest",
   "rich",
