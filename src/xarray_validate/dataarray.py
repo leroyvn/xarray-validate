@@ -14,7 +14,7 @@ import attrs as _attrs
 import numpy as np
 import xarray as xr
 
-from .base import BaseSchema, SchemaError
+from .base import BaseSchema, SchemaError, ValidationContext
 from .components import (
     ArrayTypeSchema,
     AttrsSchema,
@@ -67,7 +67,9 @@ class CoordsSchema(BaseSchema):
         coords = {k: DataArraySchema.convert(v) for k, v in list(coords.items())}
         return cls(coords=coords, **kwargs)
 
-    def validate(self, coords: Mapping[str, Any]) -> None:
+    def validate(
+        self, coords: Mapping[str, Any], context: ValidationContext | None = None
+    ) -> None:
         # Inherit docstring
 
         if self.require_all_keys:
@@ -84,7 +86,8 @@ class CoordsSchema(BaseSchema):
             if key not in coords:
                 raise SchemaError(f"key {key} not in coords")
             else:
-                da_schema.validate(coords[key])
+                child_context = context.push(f"coords.{key}") if context else None
+                da_schema.validate(coords[key], child_context)
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
@@ -219,35 +222,48 @@ class DataArraySchema(BaseSchema):
         da_schema["attrs"] = {"attrs": da_schema["attrs"]}
         return cls.deserialize(da_schema)
 
-    def validate(self, da: xr.DataArray) -> None:
+    def validate(
+        self, da: xr.DataArray, context: ValidationContext | None = None
+    ) -> None:
         # Inherit docstring
 
         if not isinstance(da, xr.DataArray):
             raise ValueError("Input must be a xarray.DataArray")
 
+        if context is None:
+            context = ValidationContext()
+
         if self.dtype is not None:
-            self.dtype.validate(da.dtype)
+            dtype_context = context.push("dtype")
+            self.dtype.validate(da.dtype, dtype_context)
 
         if self.name is not None:
-            self.name.validate(da.name)
+            name_context = context.push("name")
+            self.name.validate(da.name, name_context)
 
         if self.dims is not None:
-            self.dims.validate(da.dims)
+            dims_context = context.push("dims")
+            self.dims.validate(da.dims, dims_context)
 
         if self.shape is not None:
-            self.shape.validate(da.shape)
+            shape_context = context.push("shape")
+            self.shape.validate(da.shape, shape_context)
 
         if self.coords is not None:
-            self.coords.validate(da.coords)
+            coords_context = context.push("coords")
+            self.coords.validate(da.coords, coords_context)
 
         if self.chunks is not None:
-            self.chunks.validate(da.chunks, da.dims, da.shape)
+            chunks_context = context.push("chunks")
+            self.chunks.validate(da.chunks, da.dims, da.shape, chunks_context)
 
         if self.attrs:
-            self.attrs.validate(da.attrs)
+            attrs_context = context.push("attrs")
+            self.attrs.validate(da.attrs, attrs_context)
 
         if self.array_type is not None:
-            self.array_type.validate(da.data)
+            array_type_context = context.push("array_type")
+            self.array_type.validate(da.data, array_type_context)
 
         for check in self.checks:
             check(da)
