@@ -8,7 +8,7 @@ import numpy as np
 from numpy.typing import DTypeLike
 
 from . import converters
-from .base import BaseSchema, SchemaError
+from .base import BaseSchema, SchemaError, ValidationContext
 from .types import ChunksT, DimsT, ShapeT
 
 
@@ -46,7 +46,9 @@ class DTypeSchema(BaseSchema):
         # Inherit docstring
         return cls(obj)
 
-    def validate(self, dtype: DTypeLike) -> None:
+    def validate(
+        self, dtype: DTypeLike, context: ValidationContext | None = None
+    ) -> None:
         # Inherit docstring
 
         if not np.issubdtype(dtype, self.dtype):
@@ -100,7 +102,7 @@ class DimsSchema(BaseSchema):
 
         return cls(dims, **kwargs)
 
-    def validate(self, dims: DimsT) -> None:
+    def validate(self, dims: DimsT, context: ValidationContext | None = None) -> None:
         # Inherit docstring
 
         if len(self.dims) != len(dims):
@@ -153,7 +155,7 @@ class ShapeSchema(BaseSchema):
         # Inherit docstring
         return cls(obj)
 
-    def validate(self, shape: tuple) -> None:
+    def validate(self, shape: tuple, context: ValidationContext | None = None) -> None:
         # Inherit docstring
 
         if len(self.shape) != len(shape):
@@ -191,7 +193,9 @@ class NameSchema(BaseSchema):
         # Inherit docstring
         return cls(obj)
 
-    def validate(self, name: Hashable) -> None:
+    def validate(
+        self, name: Hashable, context: ValidationContext | None = None
+    ) -> None:
         # Inherit docstring
 
         # TODO: support regular expressions
@@ -241,6 +245,7 @@ class ChunksSchema(BaseSchema):
         chunks: Optional[Tuple[Tuple[int, ...], ...]],
         dims: Tuple,
         shape: Tuple[int, ...],
+        context: ValidationContext | None = None,
     ) -> None:
         """
         Validate chunks against this schema.
@@ -315,7 +320,7 @@ class ArrayTypeSchema(BaseSchema):
     def deserialize(cls, obj: str):
         return cls(obj)
 
-    def validate(self, array: Any) -> None:
+    def validate(self, array: Any, context: ValidationContext | None = None) -> None:
         # Inherit docstring
 
         if not isinstance(array, self.array_type):
@@ -353,7 +358,7 @@ class AttrSchema(BaseSchema):
         # Inherit docstring
         return cls(**obj)
 
-    def validate(self, attr: Any):
+    def validate(self, attr: Any, context: ValidationContext | None = None):
         # Inherit docstring
 
         if self.type is not None:
@@ -370,7 +375,7 @@ class AttrSchema(BaseSchema):
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class AttrsSchema(BaseSchema):
     """
-    Attributes schema
+    Attribute mapping schema.
 
     Parameters
     ----------
@@ -415,7 +420,7 @@ class AttrsSchema(BaseSchema):
         }
         return cls(attrs, **kwargs)
 
-    def validate(self, attrs: Any) -> None:
+    def validate(self, attrs: Any, context: ValidationContext | None = None) -> None:
         # Inherit docstring
 
         if self.require_all_keys:
@@ -432,4 +437,5 @@ class AttrsSchema(BaseSchema):
             if key not in attrs:
                 raise SchemaError(f"key {key} not in attrs")
             else:
-                attr_schema.validate(attrs[key])
+                child_context = context.push(f"attrs.{key}") if context else None
+                attr_schema.validate(attrs[key], child_context)

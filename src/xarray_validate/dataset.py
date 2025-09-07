@@ -5,7 +5,7 @@ from typing import Callable, Dict, Iterable, Optional, Union
 import attrs as _attrs
 import xarray as xr
 
-from .base import BaseSchema, SchemaError
+from .base import BaseSchema, SchemaError, ValidationContext
 from .components import AttrsSchema
 from .dataarray import CoordsSchema, DataArraySchema
 
@@ -88,8 +88,13 @@ class DatasetSchema(BaseSchema):
         ds_schema = value.to_dict(data=False)
         return cls.deserialize(ds_schema)
 
-    def validate(self, ds: xr.Dataset) -> None:
+    def validate(
+        self, ds: xr.Dataset, context: ValidationContext | None = None
+    ) -> None:
         # Inherit docstring
+
+        if context is None:
+            context = ValidationContext()
 
         if self.data_vars is not None:
             for key, da_schema in self.data_vars.items():
@@ -97,13 +102,16 @@ class DatasetSchema(BaseSchema):
                     if key not in ds.data_vars:
                         raise SchemaError(f"data variable {key} not in ds")
                     else:
-                        da_schema.validate(ds.data_vars[key])
+                        data_var_context = context.push(f"data_vars.{key}")
+                        da_schema.validate(ds.data_vars[key], data_var_context)
 
         if self.coords is not None:  # pragma: no cover
-            self.coords.validate(ds.coords)
+            coords_context = context.push("coords")
+            self.coords.validate(ds.coords, coords_context)
 
         if self.attrs:
-            self.attrs.validate(ds.attrs)
+            attrs_context = context.push("attrs")
+            self.attrs.validate(ds.attrs, attrs_context)
 
         if self.checks:
             for check in self.checks:
