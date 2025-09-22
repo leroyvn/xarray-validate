@@ -1,4 +1,4 @@
-# -- Project information -----------------------------------------------------
+# -- Project information -------------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 import xarray_validate
@@ -9,7 +9,7 @@ author = "Vincent Leroy"
 release = xarray_validate.__version__
 version = xarray_validate.__version__
 
-# -- General configuration ---------------------------------------------------
+# -- General configuration -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
@@ -23,6 +23,7 @@ extensions = [
     # Third-party
     "sphinx_copybutton",
     "sphinx_autodoc_typehints",
+    "sphinx_docsearch",
     "autodocsumm",
 ]
 
@@ -35,7 +36,9 @@ intersphinx_mapping = {
     "xarray": ("https://docs.xarray.dev/en/stable/", None),
 }
 
-# -- Options for HTML output -------------------------------------------------
+# -- Search configuration ------------------------------------------------------
+
+# -- Options for HTML output ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 

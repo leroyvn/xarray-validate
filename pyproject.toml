@@ -44,6 +44,7 @@ dev = [
   "taskipy",
   "xdoctest",
   "ruff>=0.12.3",
+  "sphinx-docsearch>=0.1.0",
 ]
 
 [build-system]
