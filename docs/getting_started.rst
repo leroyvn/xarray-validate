@@ -28,6 +28,7 @@ method:
     ...     name="foo",
     ... )
     >>> schema.validate(da)
+    ValidationResult(errors=[])
 
 :meth:`~.DataArraySchema.validate` returns ``None`` if it succeeds.
 Validation errors are reported as :class:`.SchemaError`\ s:
@@ -59,6 +60,7 @@ For example:
     ...     )
     ... )
     >>> schema.validate(da)
+    ValidationResult(errors=[])
 
 Validating Datasets
 -------------------
@@ -92,6 +94,34 @@ as values:
     >>> schema.validate(ds)
     ValidationResult(errors=[])
 
+Eager vs lazy validation mode
+-----------------------------
+
+By default, validation errors raise a :class:`SchemaError` eagerly. It is
+however possible to perform a lazy Dataset or DataArray validation, during which
+errors will be collected and reported after running all subschemas. For example:
+
+.. doctest::
+    :options: +NORMALIZE_WHITESPACE
+
+    >>> from xarray_validate import DTypeSchema, DimsSchema, NameSchema
+    >>> schema = DataArraySchema(
+    ...     dtype=DTypeSchema(np.int64),  # Wrong dtype
+    ...     dims=DimsSchema(["x", "y"]),  # Wrong dimension order
+    ...     name=NameSchema("temperature"),  # Wrong name
+    ... )
+    >>> da = xr.DataArray(
+    ...     np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float32),
+    ...     dims=["y", "x"],
+    ...     coords={"x": [0, 1, 2], "y": [0, 1]},
+    ...     name="incorrect_name",
+    ... )
+    >>> schema.validate(da, mode="lazy")
+    ValidationResult(errors=[('dtype', SchemaError("dtype mismatch: got dtype('float32'), expected dtype('int64')")),
+                             ('name', SchemaError('name mismatch: got incorrect_name, expected temperature')),
+                             ('dims', SchemaError('dimension mismatch in axis 0: got y, expected x')),
+                             ('dims', SchemaError('dimension mismatch in axis 1: got x, expected y'))])
+
 Loading schemas from serialized data structures
 -----------------------------------------------
 
@@ -101,6 +131,12 @@ to the argument of the respective schema constructor:
 
 .. doctest::
 
+    >>> da = xr.DataArray(
+    ...     np.ones(4, dtype="i4"),
+    ...     dims=["x"],
+    ...     coords={"x": ("x", np.arange(4)), "y": ("x", np.linspace(0, 1, 4))},
+    ...     name="foo",
+    ... )
     >>> schema = DataArraySchema.deserialize(
     ...     {
     ...         "name": "foo",
@@ -116,11 +152,21 @@ to the argument of the respective schema constructor:
     ...     }
     ... )
     >>> schema.validate(da)
+    ValidationResult(errors=[])
 
 This also applies to dataset schemas:
 
 .. doctest::
 
+    >>> ds = xr.Dataset(
+    ...     {
+    ...         "x": xr.DataArray(np.arange(4) - 2, dims="x"),
+    ...         "foo": xr.DataArray(np.ones(4, dtype="i4"), dims="x"),
+    ...         "bar": xr.DataArray(
+    ...             np.arange(8, dtype=np.float64).reshape(4, 2), dims=("x", "y")
+    ...         ),
+    ...     }
+    ... )
     >>> schema = DatasetSchema.deserialize(
     ...     {
     ...         "data_vars": {
@@ -135,5 +181,6 @@ This also applies to dataset schemas:
     ...     }
     ... )
     >>> schema.validate(ds)
+    ValidationResult(errors=[])
 
 TBD (include YAML)
