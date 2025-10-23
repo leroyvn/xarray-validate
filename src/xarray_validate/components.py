@@ -8,7 +8,11 @@ import numpy as np
 from numpy.typing import DTypeLike
 
 from . import converters
-from .base import BaseSchema, SchemaError, ValidationContext
+from .base import (
+    BaseSchema,
+    SchemaError,
+    ValidationContext,
+)
 from .types import ChunksT, DimsT, ShapeT
 
 
@@ -52,9 +56,13 @@ class DTypeSchema(BaseSchema):
         # Inherit docstring
 
         if not np.issubdtype(dtype, self.dtype):
-            raise SchemaError(
+            error = SchemaError(
                 f"dtype mismatch: got {repr(dtype)}, expected {repr(self.dtype)}"
             )
+            if context:
+                context.handle_error(error)
+            else:
+                raise error
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
@@ -106,24 +114,36 @@ class DimsSchema(BaseSchema):
         # Inherit docstring
 
         if len(self.dims) != len(dims):
-            raise SchemaError(
+            error = SchemaError(
                 f"dimension number mismatch: got {len(dims)}, expected {len(self.dims)}"
             )
+            if context:
+                context.handle_error(error)
+            else:
+                raise error
 
         if self.ordered:
             for i, (actual, expected) in enumerate(zip(dims, self.dims)):
                 if expected is not None and actual != expected:
-                    raise SchemaError(
+                    error = SchemaError(
                         f"dimension mismatch in axis {i}: got {actual}, "
                         f"expected {expected}"
                     )
+                    if context:
+                        context.handle_error(error)
+                    else:
+                        raise error
         else:
             for i, expected in enumerate(self.dims):
                 if expected is not None and expected not in dims:
-                    raise SchemaError(
+                    error = SchemaError(
                         f"dimension mismatch: expected {expected} is missing "
                         f"from actual dimension list {dims}"
                     )
+                    if context:
+                        context.handle_error(error)
+                    else:
+                        raise error
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
@@ -159,16 +179,24 @@ class ShapeSchema(BaseSchema):
         # Inherit docstring
 
         if len(self.shape) != len(shape):
-            raise SchemaError(
+            error = SchemaError(
                 "dimension count mismatch: "
                 f"got {len(shape)}, expected {len(self.shape)}"
             )
+            if context:
+                context.handle_error(error)
+            else:
+                raise error
 
         for i, (actual, expected) in enumerate(zip(shape, self.shape)):
             if expected is not None and actual != expected:
-                raise SchemaError(
+                error = SchemaError(
                     f"shape mismatch in axis {i}: got {actual}, expected {expected}"
                 )
+                if context:
+                    context.handle_error(error)
+                else:
+                    raise error
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
@@ -202,7 +230,11 @@ class NameSchema(BaseSchema):
         # - http://json-schema.org/understanding-json-schema/reference/regular_expressions.html
         # - https://docs.python.org/3.9/library/re.html
         if self.name != name:
-            raise SchemaError(f"name mismatch: got {name}, expected {self.name}")
+            error = SchemaError(f"name mismatch: got {name}, expected {self.name}")
+            if context:
+                context.handle_error(error)
+            else:
+                raise error
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
@@ -264,12 +296,24 @@ class ChunksSchema(BaseSchema):
 
         if isinstance(self.chunks, bool):
             if self.chunks and not chunks:
-                raise SchemaError("expected array to be chunked but it is not")
+                error = SchemaError("expected array to be chunked but it is not")
+                if context:
+                    context.handle_error(error)
+                else:
+                    raise error
             elif not self.chunks and chunks:
-                raise SchemaError("expected unchunked array but it is chunked")
+                error = SchemaError("expected unchunked array but it is chunked")
+                if context:
+                    context.handle_error(error)
+                else:
+                    raise error
         elif isinstance(self.chunks, dict):
             if chunks is None:
-                raise SchemaError("expected array to be chunked but it is not")
+                error = SchemaError("expected array to be chunked but it is not")
+                if context:
+                    context.handle_error(error)
+                else:
+                    raise error
             dim_chunks = dict(zip(dims, chunks))
             dim_sizes = dict(zip(dims, shape))
             # Check whether chunk sizes are regular because we assume the first
@@ -282,16 +326,24 @@ class ChunksSchema(BaseSchema):
                         ec = dim_sizes[key]
                     ac = dim_chunks[key]
                     if any([a != ec for a in ac[:-1]]) or ac[-1] > ec:
-                        raise SchemaError(
+                        error = SchemaError(
                             f"chunk mismatch for {key}: got {ac}, expected {ec}"
                         )
+                        if context:
+                            context.handle_error(error)
+                        else:
+                            raise error
 
                 else:  # assumes ec is an iterable
                     ac = dim_chunks[key]
                     if ec is not None and tuple(ac) != tuple(ec):
-                        raise SchemaError(
+                        error = SchemaError(
                             f"chunk mismatch for {key}: got {ac}, expected {ec}"
                         )
+                        if context:
+                            context.handle_error(error)
+                        else:
+                            raise error
         else:
             raise ValueError(f"got unknown chunks type: {type(self.chunks)}")
 
@@ -324,9 +376,13 @@ class ArrayTypeSchema(BaseSchema):
         # Inherit docstring
 
         if not isinstance(array, self.array_type):
-            raise SchemaError(
+            error = SchemaError(
                 f"array type mismatch: got {type(array)}, expected {self.array_type}"
             )
+            if context:
+                context.handle_error(error)
+            else:
+                raise error
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
@@ -363,13 +419,21 @@ class AttrSchema(BaseSchema):
 
         if self.type is not None:
             if not isinstance(attr, self.type):
-                raise SchemaError(
+                error = SchemaError(
                     f"attribute type mismatch {attr} is not of type {self.type}"
                 )
+                if context:
+                    context.handle_error(error)
+                else:
+                    raise error
 
         if self.value is not None:
             if self.value is not None and self.value != attr:
-                raise SchemaError(f"name {attr} != {self.value}")
+                error = SchemaError(f"name {attr} != {self.value}")
+                if context:
+                    context.handle_error(error)
+                else:
+                    raise error
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
@@ -426,16 +490,28 @@ class AttrsSchema(BaseSchema):
         if self.require_all_keys:
             missing_keys = set(self.attrs) - set(attrs)
             if missing_keys:
-                raise SchemaError(f"attrs has missing keys: {missing_keys}")
+                error = SchemaError(f"attrs has missing keys: {missing_keys}")
+                if context:
+                    context.handle_error(error)
+                else:
+                    raise error
 
         if not self.allow_extra_keys:
             extra_keys = set(attrs) - set(self.attrs)
             if extra_keys:
-                raise SchemaError(f"attrs has extra keys: {extra_keys}")
+                error = SchemaError(f"attrs has extra keys: {extra_keys}")
+                if context:
+                    context.handle_error(error)
+                else:
+                    raise error
 
         for key, attr_schema in self.attrs.items():
             if key not in attrs:
-                raise SchemaError(f"key {key} not in attrs")
+                error = SchemaError(f"key {key} not in attrs")
+                if context:
+                    context.handle_error(error)
+                else:
+                    raise error
             else:
                 child_context = context.push(f"attrs.{key}") if context else None
                 attr_schema.validate(attrs[key], child_context)

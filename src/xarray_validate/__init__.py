@@ -4,7 +4,12 @@ Main interface.
 
 from . import types as types
 from ._version import version as __version__
-from .base import SchemaError
+from .base import (
+    SchemaError,
+    ValidationContext,
+    ValidationMode,
+    ValidationResult,
+)
 from .components import (
     ArrayTypeSchema,
     AttrSchema,
@@ -20,17 +25,20 @@ from .dataset import DatasetSchema
 
 __all__ = [
     "__version__",
-    "SchemaError",
     "ArrayTypeSchema",
     "AttrSchema",
     "AttrsSchema",
     "ChunksSchema",
-    "DimsSchema",
-    "DTypeSchema",
-    "NameSchema",
-    "ShapeSchema",
     "CoordsSchema",
     "DataArraySchema",
     "DatasetSchema",
+    "DimsSchema",
+    "DTypeSchema",
+    "NameSchema",
+    "SchemaError",
+    "ShapeSchema",
     "types",
+    "ValidationContext",
+    "ValidationMode",
+    "ValidationResult",
 ]
