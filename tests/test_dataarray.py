@@ -56,7 +56,7 @@ def test_dataarray_component_constructors(
 def test_dataarray_schema_validate_raises_for_invalid_input_type():
     ds = xr.Dataset()
     schema = DataArraySchema()
-    with pytest.raises(ValueError, match="Input must be a xarray.DataArray"):
+    with pytest.raises(ValueError, match="Input must be an xarray.DataArray"):
         schema.validate(ds)
 
 

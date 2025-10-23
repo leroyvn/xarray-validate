@@ -6,15 +6,19 @@ from typing import (
     ClassVar,
     Dict,
     List,
+    Literal,
     Mapping,
     Optional,
 )
 
 import attrs as _attrs
-import numpy as np
 import xarray as xr
 
-from .base import BaseSchema, SchemaError, ValidationContext
+from .base import (
+    BaseSchema,
+    SchemaError,
+    ValidationContext,
+)
 from .components import (
     ArrayTypeSchema,
     AttrsSchema,
@@ -75,16 +79,28 @@ class CoordsSchema(BaseSchema):
         if self.require_all_keys:
             missing_keys = set(self.coords) - set(coords)
             if missing_keys:
-                raise SchemaError(f"coords has missing keys: {missing_keys}")
+                error = SchemaError(f"coords has missing keys: {missing_keys}")
+                if context:
+                    context.handle_error(error)
+                else:
+                    raise error
 
         if not self.allow_extra_keys:
             extra_keys = set(coords) - set(self.coords)
             if extra_keys:
-                raise SchemaError(f"coords has extra keys: {extra_keys}")
+                error = SchemaError(f"coords has extra keys: {extra_keys}")
+                if context:
+                    context.handle_error(error)
+                else:
+                    raise error
 
         for key, da_schema in self.coords.items():
             if key not in coords:
-                raise SchemaError(f"key {key} not in coords")
+                error = SchemaError(f"key {key} not in coords")
+                if context:
+                    context.handle_error(error)
+                else:
+                    raise error
             else:
                 child_context = context.push(f"coords.{key}") if context else None
                 da_schema.validate(coords[key], child_context)
@@ -138,7 +154,7 @@ class DataArraySchema(BaseSchema):
         "array_type",
     ]
 
-    dtype: np.dtype = _attrs.field(
+    dtype: Optional[DTypeSchema] = _attrs.field(
         default=None,
         converter=_attrs.converters.optional(DTypeSchema.convert),
     )
@@ -223,12 +239,20 @@ class DataArraySchema(BaseSchema):
         return cls.deserialize(da_schema)
 
     def validate(
-        self, da: xr.DataArray, context: ValidationContext | None = None
+        self,
+        da: xr.DataArray,
+        context: ValidationContext | None = None,
+        mode: Literal["eager", "lazy"] | None = None,
     ) -> None:
         # Inherit docstring
+        if mode is None:
+            mode = "eager"
+
+        if context is None:
+            context = ValidationContext(mode=mode)
 
         if not isinstance(da, xr.DataArray):
-            raise ValueError("Input must be a xarray.DataArray")
+            raise ValueError("Input must be an xarray.DataArray")
 
         if context is None:
             context = ValidationContext()
@@ -267,3 +291,5 @@ class DataArraySchema(BaseSchema):
 
         for check in self.checks:
             check(da)
+
+        return context.result
