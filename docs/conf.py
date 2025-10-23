@@ -22,7 +22,6 @@ extensions = [
     "sphinx.ext.viewcode",
     # Third-party
     "sphinx_copybutton",
-    "sphinx_autodoc_typehints",
     "autodocsumm",
 ]
 
@@ -34,6 +33,8 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "xarray": ("https://docs.xarray.dev/en/stable/", None),
 }
+
+autodoc_typehints = "none"
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
