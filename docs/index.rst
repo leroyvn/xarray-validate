@@ -72,6 +72,12 @@ To install all extras:
 
     python -m pip install "xarray-validate[all]"
 
+Development installation:
+
+.. code:: shell
+
+    uv sync --all-groups --all-extras
+
 .. toctree::
     :maxdepth: 2
     :caption: Use
@@ -90,5 +96,4 @@ To install all extras:
    :caption: Develop
    :hidden:
 
-   src/contributing.md
    GitHub repository <https://github.com/leroyvn/xarray-validate>

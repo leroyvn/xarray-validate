@@ -30,21 +30,23 @@ dask = ["dask"]
 yaml = ["ruamel-yaml"]
 
 [dependency-groups]
-dev = [
+lint = ["ruff>=0.12.3"]
+docs = [
   "autodocsumm>=0.2.14",
   "furo",
-  "ipykernel",
-  "pytest-cov",
-  "pytest",
-  "rich",
-  "setuptools", # Required for PyCharm to be happy
   "sphinx-autobuild>=2021",
-  "sphinx-autodoc-typehints>=2",
   "sphinx-copybutton>=0.5.2",
   "sphinx>=7",
+]
+test = ["pytest-cov", "pytest", "xdoctest"]
+dev = [
+  "ipykernel",
+  "rich",
+  "setuptools", # Required for PyCharm to be happy
   "taskipy",
-  "xdoctest",
-  "ruff>=0.12.3",
+  { include-group = "docs" },
+  { include-group = "lint" },
+  { include-group = "test" },
 ]
 
 [build-system]
