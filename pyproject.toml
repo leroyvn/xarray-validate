@@ -72,7 +72,7 @@ parallel = true
 source = ["src/"]
 
 [tool.pytest.ini_options]
-addopts = "--doctest-glob='*.rst'"
+addopts = "--xdoctest-glob='*.rst'"
 testpaths = ["tests", "docs"]
 norecursedirs = [".git", ".env", "dist", "__pypackages__"]
 python_files = ["test_*.py", "*_test.py", "tests.py"]
