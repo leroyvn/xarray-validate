@@ -63,7 +63,10 @@ For example:
 Validating Datasets
 -------------------
 
-TBD
+Similarly, :class:`xarray.Dataset` instances can be validated using
+:class:`.DatasetSchema`. Its ``data_vars`` argument expects a mapping with
+variable names as keys and (anything that converts to) :class:`.DataArraySchema`
+as values:
 
 .. doctest::
 
@@ -77,6 +80,17 @@ TBD
     ...         ),
     ...     }
     ... )
+    >>> schema = DatasetSchema(
+    ...     data_vars={
+    ...         "foo": DataArraySchema(dtype="<i4", dims=["x"], shape=[4]),
+    ...         "bar": DataArraySchema(dtype="<f8", dims=["x", "y"], shape=[4, 2]),
+    ...     },
+    ...     coords=CoordsSchema(
+    ...         {"x": DataArraySchema(dtype="<i8", dims=["x"], shape=(4,))}
+    ...     ),
+    ... )
+    >>> schema.validate(ds)
+    ValidationResult(errors=[])
 
 Loading schemas from serialized data structures
 -----------------------------------------------
