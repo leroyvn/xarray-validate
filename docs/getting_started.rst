@@ -28,7 +28,7 @@ method:
     ...     name="foo",
     ... )
     >>> schema.validate(da)
-    ValidationResult(errors=[])
+    None
 
 :meth:`~.DataArraySchema.validate` returns ``None`` if it succeeds.
 Validation errors are reported as :class:`.SchemaError`\ s:
@@ -60,7 +60,7 @@ For example:
     ...     )
     ... )
     >>> schema.validate(da)
-    ValidationResult(errors=[])
+    None
 
 Validating Datasets
 -------------------
@@ -92,7 +92,7 @@ as values:
     ...     ),
     ... )
     >>> schema.validate(ds)
-    ValidationResult(errors=[])
+    None
 
 Eager vs lazy validation mode
 -----------------------------
@@ -152,7 +152,7 @@ to the argument of the respective schema constructor:
     ...     }
     ... )
     >>> schema.validate(da)
-    ValidationResult(errors=[])
+    None
 
 This also applies to dataset schemas:
 
@@ -181,6 +181,6 @@ This also applies to dataset schemas:
     ...     }
     ... )
     >>> schema.validate(ds)
-    ValidationResult(errors=[])
+    None
 
 TBD (include YAML)

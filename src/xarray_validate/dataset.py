@@ -9,6 +9,7 @@ from .base import (
     BaseSchema,
     SchemaError,
     ValidationContext,
+    ValidationMode,
 )
 from .components import AttrsSchema
 from .dataarray import CoordsSchema, DataArraySchema
@@ -150,4 +151,4 @@ class DatasetSchema(BaseSchema):
             for check in self.checks:
                 check(ds)
 
-        return context.result
+        return None if context.mode is ValidationMode.EAGER else context.result

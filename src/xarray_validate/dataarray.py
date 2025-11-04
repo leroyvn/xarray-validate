@@ -18,6 +18,7 @@ from .base import (
     BaseSchema,
     SchemaError,
     ValidationContext,
+    ValidationMode,
     ValidationResult,
 )
 from .components import (
@@ -313,4 +314,4 @@ class DataArraySchema(BaseSchema):
         for check in self.checks:
             check(da)
 
-        return context.result
+        return None if context.mode is ValidationMode.EAGER else context.result
