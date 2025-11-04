@@ -18,6 +18,7 @@ from .base import (
     BaseSchema,
     SchemaError,
     ValidationContext,
+    ValidationResult,
 )
 from .components import (
     ArrayTypeSchema,
@@ -243,8 +244,28 @@ class DataArraySchema(BaseSchema):
         da: xr.DataArray,
         context: ValidationContext | None = None,
         mode: Literal["eager", "lazy"] | None = None,
-    ) -> None:
-        # Inherit docstring
+    ) -> ValidationResult | None:
+        """
+        Validate an xarray.DataArray against this schema.
+
+        Parameters
+        ----------
+        da : DataArray
+            DataArray to validate.
+
+        context : ValidationContext, optional
+            Validation context for tracking tree traversal state.
+
+        mode : {"eager", "lazy"}, optional
+            Validation mode. If unset, the global default mode (eager) is used.
+
+        Returns
+        -------
+        ValidationResult or None
+            In eager mode, this method returns ``None``. In lazy mode, it
+            returns a :class:`ValidationResult` object.
+        """
+
         if mode is None:
             mode = "eager"
 
