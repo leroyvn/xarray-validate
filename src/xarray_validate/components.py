@@ -35,7 +35,7 @@ class DTypeSchema(BaseSchema):
         be arbitrarily converted respectively to ``np.int64`` and ``np.float64``.
     """
 
-    dtype: dtype = _attrs.field(converter=_dtype_converter)
+    dtype: np.dtype = _attrs.field(converter=_dtype_converter)
 
     def serialize(self):
         # Inherit docstring
