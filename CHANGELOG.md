@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.0.3 — Upcoming release
+
+### Added
+
+- Lazy validation mode for xarray Datasets and
+  DataArrays [#18](https://github.com/leroyvn/xarray-validate/pull/18)
+
 ## 0.0.2 — 2025-07-18
 
 ### Added
