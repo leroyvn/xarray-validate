@@ -84,7 +84,7 @@ class ValidationContext:
 
         Returns
         -------
-        .ValidationContext
+        ValidationContext
             New context with extended path sharing the same mode and result.
         """
         return ValidationContext(
@@ -158,11 +158,15 @@ class BaseSchema(ABC):
 
         Parameters
         ----------
-        value : Any
-            Object to validate
+        value
+            Object to validate.
 
         context : ValidationContext, optional
-            Validation context for tracking tree traversal state
+            Validation context for tracking tree traversal state.
+
+        Returns
+        -------
+        None
 
         Raises
         ------

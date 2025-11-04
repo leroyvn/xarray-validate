@@ -47,13 +47,35 @@ class DTypeSchema(BaseSchema):
 
     @classmethod
     def deserialize(cls, obj):
-        # Inherit docstring
+        """
+        Instantiate schema from a dtype-like object.
+        """
+
         return cls(obj)
 
     def validate(
         self, dtype: DTypeLike, context: ValidationContext | None = None
     ) -> None:
-        # Inherit docstring
+        """
+        Validate dtype against this schema.
+
+        Parameters
+        ----------
+        dtype : DTypeLike
+            Dtype to validate.
+
+        context : ValidationContext, optional
+            Validation context for tracking tree traversal state.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        SchemaError
+            If validation fails.
+        """
 
         if not np.issubdtype(dtype, self.dtype):
             error = SchemaError(
@@ -100,7 +122,17 @@ class DimsSchema(BaseSchema):
 
     @classmethod
     def deserialize(cls, obj: DimsT | dict) -> DimsSchema:
-        # Inherit docstring
+        """
+        Instantiate schema from basic Python types.
+
+        Two input types are supported:
+
+        * a sequence of strings;
+        * a dictionary that contains a ``dims`` entry (with a sequence of
+          strings as value) and an optional ``ordered`` entry (with a boolean as
+          value).
+        """
+
         if isinstance(obj, Sequence):
             dims = obj
             kwargs = {}
@@ -111,7 +143,26 @@ class DimsSchema(BaseSchema):
         return cls(dims, **kwargs)
 
     def validate(self, dims: DimsT, context: ValidationContext | None = None) -> None:
-        # Inherit docstring
+        """
+        Validate dimensions against this schema.
+
+        Parameters
+        ----------
+        dims : sequence of str
+            Dimensions to validate.
+
+        context : ValidationContext, optional
+            Validation context for tracking tree traversal state.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        SchemaError
+            If validation fails.
+        """
 
         if len(self.dims) != len(dims):
             error = SchemaError(
@@ -172,11 +223,33 @@ class ShapeSchema(BaseSchema):
 
     @classmethod
     def deserialize(cls, obj: ShapeT):
-        # Inherit docstring
+        """
+        Instantiate schema from a sequence of integers (use None as a wildcard).
+        """
+
         return cls(obj)
 
     def validate(self, shape: tuple, context: ValidationContext | None = None) -> None:
-        # Inherit docstring
+        """
+        Validate shape against this schema.
+
+        Parameters
+        ----------
+        shape : tuple of int
+            Shape to validate.
+
+        context : ValidationContext, optional
+            Validation context for tracking tree traversal state.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        SchemaError
+            If validation fails.
+        """
 
         if len(self.shape) != len(shape):
             error = SchemaError(
@@ -218,13 +291,33 @@ class NameSchema(BaseSchema):
 
     @classmethod
     def deserialize(cls, obj: str):
-        # Inherit docstring
+        """
+        Instantiate schema from a string.
+        """
+
         return cls(obj)
 
-    def validate(
-        self, name: Hashable, context: ValidationContext | None = None
-    ) -> None:
-        # Inherit docstring
+    def validate(self, name: str, context: ValidationContext | None = None) -> None:
+        """
+        Validate name against this schema.
+
+        Parameters
+        ----------
+        name : str
+            Name to validate.
+
+        context : ValidationContext, optional
+            Validation context for tracking tree traversal state.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        SchemaError
+            If validation fails.
+        """
 
         # TODO: support regular expressions
         # - http://json-schema.org/understanding-json-schema/reference/regular_expressions.html
@@ -269,7 +362,10 @@ class ChunksSchema(BaseSchema):
 
     @classmethod
     def deserialize(cls, obj: dict):
-        # Inherit docstring
+        """
+        Instantiate schema from a dictionary.
+        """
+
         return cls(obj)
 
     def validate(
@@ -292,6 +388,18 @@ class ChunksSchema(BaseSchema):
 
         shape : tuple of int
             Shape of array.
+
+        context : ValidationContext, optional
+            Validation context for tracking tree traversal state.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        SchemaError
+            If validation fails.
         """
 
         if isinstance(self.chunks, bool):
@@ -370,10 +478,33 @@ class ArrayTypeSchema(BaseSchema):
 
     @classmethod
     def deserialize(cls, obj: str):
+        """
+        Instantiate schema from a string.
+        """
         return cls(obj)
 
     def validate(self, array: Any, context: ValidationContext | None = None) -> None:
-        # Inherit docstring
+        """
+        Validate array type against this schema.
+
+        Parameters
+        ----------
+        array : Any
+            Array to validate.
+
+        context : ValidationContext, optional
+            Validation context for tracking tree traversal state.
+
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        SchemaError
+            If validation fails.
+        """
 
         if not isinstance(array, self.array_type):
             error = SchemaError(
@@ -411,11 +542,33 @@ class AttrSchema(BaseSchema):
 
     @classmethod
     def deserialize(cls, obj):
-        # Inherit docstring
+        """
+        Instantiate schema from a dictionary.
+        """
+
         return cls(**obj)
 
     def validate(self, attr: Any, context: ValidationContext | None = None):
-        # Inherit docstring
+        """
+        Validate attribute against this schema.
+
+        Parameters
+        ----------
+        attr : Any
+            Attribute value to validate.
+
+        context : ValidationContext, optional
+            Validation context for tracking tree traversal state.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        SchemaError
+            If validation fails.
+        """
 
         if self.type is not None:
             if not isinstance(attr, self.type):
@@ -468,7 +621,10 @@ class AttrsSchema(BaseSchema):
 
     @classmethod
     def deserialize(cls, obj: dict):
-        # Inherit docstring
+        """
+        Instantiate schema from a dictionary.
+        """
+
         if "attrs" in obj:
             attrs = obj["attrs"]
             kwargs = {k: v for k, v in obj.items() if k != "attrs"}
@@ -485,7 +641,26 @@ class AttrsSchema(BaseSchema):
         return cls(attrs, **kwargs)
 
     def validate(self, attrs: Any, context: ValidationContext | None = None) -> None:
-        # Inherit docstring
+        """
+        Validate attributes dictionary against this schema.
+
+        Parameters
+        ----------
+        attrs : dict
+            Attributes dictionary to validate.
+
+        context : ValidationContext, optional
+            Validation context for tracking tree traversal state.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        SchemaError
+            If validation fails.
+        """
 
         if self.require_all_keys:
             missing_keys = set(self.attrs) - set(attrs)
