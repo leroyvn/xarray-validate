@@ -8,6 +8,7 @@ All notable changes to this project are documented in this file.
 
 - Lazy validation mode for xarray Datasets and
   DataArrays [#18](https://github.com/leroyvn/xarray-validate/pull/18)
+- Support Python 3.14 [#20](https://github.com/leroyvn/xarray-validate/pull/20)
 
 ## 0.0.2 — 2025-07-18
 
