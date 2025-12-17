@@ -2,7 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
-## 0.0.3 — Upcoming release
+## 0.0.4 — Upcoming release
+
+*No changes yet*
+
+## 0.0.3 — 2025-12-17
 
 ### Added
 
