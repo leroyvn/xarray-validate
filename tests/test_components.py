@@ -229,7 +229,8 @@ def test_attr_schema(type, value, validate, json):
             DTypeSchema,
             np.integer,
             np.float32,
-            r"dtype mismatch: got <class 'numpy.float32'>, expected <class 'numpy.integer'>",
+            "dtype mismatch: got <class 'numpy.float32'>, expected "
+            "<class 'numpy.integer'>",
         ),
         (
             ShapeSchema,
