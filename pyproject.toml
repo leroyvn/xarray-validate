@@ -1,7 +1,7 @@
 [project]
 name = "xarray-validate"
 version = "0.0.3.dev0"
-description = "Add your description here"
+description = "A lightweight xarray validation library"
 authors = [{ name = "Vincent Leroy", email = "vincent.leroy@rayference.eu" }]
 dependencies = ["attrs", "numpy", "xarray"]
 readme = "README.md"
