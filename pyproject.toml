@@ -31,7 +31,7 @@ dask = ["dask"]
 yaml = ["ruamel-yaml"]
 
 [dependency-groups]
-lint = ["ruff>=0.12.3"]
+lint = ["ruff>=0.14.0"]
 docs = [
   "autodocsumm>=0.2.14",
   "furo",
