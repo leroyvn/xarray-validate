@@ -4,7 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## 0.0.4 — Upcoming release
 
-*No changes yet*
+### Changed
+
+- Refactored `DTypeSchema` to allow dtype generics and multiple matches
+  [1e061507](https://github.com/leroyvn/xarray-validate/commit/1e06150764f7eee88cc9157c7d1a3a46bace4935)
 
 ## 0.0.3 — 2025-12-17
 
