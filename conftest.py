@@ -3,6 +3,15 @@ import pytest
 import xarray as xr
 
 
+@pytest.fixture(autouse=True, scope="session")
+def add_imports_to_xdoctest_namespace(xdoctest_namespace):
+    """
+    Add common imports to the doctest namespace so that they are available
+    without explicit imports.
+    """
+    xdoctest_namespace["np"] = np
+
+
 @pytest.fixture
 def ds():
     ds = xr.Dataset(
