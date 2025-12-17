@@ -37,6 +37,7 @@ __all__ = [
     "NameSchema",
     "SchemaError",
     "ShapeSchema",
+    "testing",
     "types",
     "ValidationContext",
     "ValidationMode",
