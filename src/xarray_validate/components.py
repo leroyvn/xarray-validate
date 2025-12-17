@@ -69,7 +69,8 @@ class DTypeSchema(BaseSchema):
     >>> schema.validate(np.dtype("float16"))
     Traceback (most recent call last):
     ...
-    SchemaError: dtype mismatch: got dtype('float16'), expected one of (dtype('float32'), dtype('float64'))
+    SchemaError: dtype mismatch: got dtype('float16'), expected one of
+                 (dtype('float32'), dtype('float64'))
     """
 
     dtype: np.dtype | tuple[np.dtype, ...] = _attrs.field(converter=_dtype_converter)
