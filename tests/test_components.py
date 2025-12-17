@@ -15,20 +15,61 @@ from xarray_validate import (
     NameSchema,
     SchemaError,
     ShapeSchema,
+    testing,
 )
+
+
+class TestDTypeSchema:
+    VALIDATION_VALUES = {
+        "int64": ["int", np.int64, "int64", "i8"],
+        "int32": [np.int32, "int32", "i4"],
+        "int16": [np.int16, "int16", "i2"],
+    }
+
+    @pytest.mark.parametrize(
+        "schema_args, validate, json",
+        [
+            (np.int64, "int64", "<i8"),
+            ("int64", "int64", "<i8"),
+            ("<i8", "int64", "<i8"),
+            (np.int32, "int32", "<i4"),
+            (np.int16, "int16", "<i2"),
+        ],
+        ids=["integer", "int64", "<i8", "int32", "int16"],
+    )
+    def test_dtype_schema_basic(self, schema_args, validate, json):
+        schema = testing.assert_construct(DTypeSchema, schema_args)
+
+        validate = self.VALIDATION_VALUES[validate]
+        for v in validate:
+            schema.validate(v)
+
+        testing.assert_json(schema, json)
+
+    def test_dtype_schema_array(self):
+        schema = DTypeSchema(["int16", "int32"])
+        schema.validate(np.dtype("int16"))
+        schema.validate(np.dtype("int32"))
+        with pytest.raises(SchemaError):
+            schema.validate(np.dtype("int64"))
+
+        schema = DTypeSchema(["integer", "floating"])
+        schema.validate(np.dtype("int"))
+        schema.validate(np.dtype("float"))
+        with pytest.raises(SchemaError):
+            schema.validate(np.dtype("bool"))
+
+    def test_dtype_schema_generic(self):
+        for dtype in ["float16", "float32", "float64"]:
+            DTypeSchema("floating").validate(np.dtype(dtype))
+
+        for dtype in ["int16", "int32", "int64"]:
+            DTypeSchema("integer").validate(np.dtype(dtype))
 
 
 @pytest.mark.parametrize(
     "component, schema_args, validate, json",
     [
-        (
-            DTypeSchema,
-            np.integer,
-            [np.int64, "int", "i8"],
-            "<i8",
-        ),  # TODO: check Numpy 1
-        (DTypeSchema, np.int32, [np.int32, "int32", "i4"], "<i4"),
-        (DTypeSchema, "<i8", [np.int64, "int64", "i8"], "<i8"),
         (ShapeSchema, (1, 2, None), [(1, 2, 3), (1, 2, 5)], [1, 2, None]),
         (ShapeSchema, (1, 2, 3), [(1, 2, 3)], [1, 2, 3]),
         (NameSchema, "foo", ["foo"], "foo"),
@@ -188,7 +229,7 @@ def test_attr_schema(type, value, validate, json):
             DTypeSchema,
             np.integer,
             np.float32,
-            r"dtype mismatch: got <class 'numpy.float32'>, expected dtype\('int64'\)",
+            r"dtype mismatch: got <class 'numpy.float32'>, expected <class 'numpy.integer'>",
         ),
         (
             ShapeSchema,

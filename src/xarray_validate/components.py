@@ -8,21 +8,22 @@ import numpy as np
 from numpy.typing import DTypeLike
 
 from . import converters
-from .base import (
-    BaseSchema,
-    SchemaError,
-    ValidationContext,
-)
+from .base import BaseSchema, SchemaError, ValidationContext
 from .types import ChunksT, DimsT, ShapeT
 
 
 def _dtype_converter(value: DTypeLike):
-    # NumPy 2.x forbids conversion from generic dtypes to dtypes.
-    # Therefor we therefore use arbitrary defaults.
-    if value is np.integer:
-        value = np.int64
-    if value is np.floating:
-        value = np.float64
+    if isinstance(value, (tuple, list)):
+        return tuple(_dtype_converter(x) for x in value)
+
+    if value in {np.integer, np.floating}:
+        return value
+
+    if value == "integer":
+        return np.integer
+
+    if value == "floating":
+        return np.floating
 
     return np.dtype(value)
 
@@ -30,16 +31,48 @@ def _dtype_converter(value: DTypeLike):
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class DTypeSchema(BaseSchema):
     """
-    Datatype schema.
+    Data type schema.
+
+    This schema type validates NumPy's data type objects.
 
     Parameters
     ----------
     dtype : DTypeLike
-        DataArray dtype. Generic dtypes ``np.integer`` and ``np.floating`` will
-        be arbitrarily converted respectively to ``np.int64`` and ``np.float64``.
+        DataArray dtype. Generic dtypes ``np.integer`` and ``np.floating`` are
+        supported.
+
+    Examples
+    --------
+    Basic instantiation and validation work like this:
+
+    >>> schema = DTypeSchema("float64")
+    >>> schema.validate(np.dtype("float64"))
+
+    Validation uses :func:`numpy.issubdtype` and is therefore strict:
+
+    >>> schema.validate(np.dtype("float32"))
+    Traceback (most recent call last):
+    ...
+    SchemaError: dtype mismatch: got dtype('float32'), expected dtype('float64')
+
+    Generics are supported. For instance:
+
+    >>> DTypeSchema("floating").validate(np.ones(5, dtype="float16").dtype)
+    >>> DTypeSchema("integer").validate(np.ones(5, dtype="int32").dtype)
+
+    For flexibility, multiple dtypes can be passed. Validation will pass if
+    at least one validates:
+
+    >>> schema = DTypeSchema(["float64", "float32"])
+    >>> schema.validate(np.dtype("float64"))
+    >>> schema.validate(np.dtype("float32"))
+    >>> schema.validate(np.dtype("float16"))
+    Traceback (most recent call last):
+    ...
+    SchemaError: dtype mismatch: got dtype('float16'), expected one of (dtype('float32'), dtype('float64'))
     """
 
-    dtype: np.dtype = _attrs.field(converter=_dtype_converter)
+    dtype: np.dtype | tuple[np.dtype, ...] = _attrs.field(converter=_dtype_converter)
 
     def serialize(self):
         # Inherit docstring
@@ -77,10 +110,26 @@ class DTypeSchema(BaseSchema):
             If validation fails.
         """
 
-        if not np.issubdtype(dtype, self.dtype):
-            error = SchemaError(
-                f"dtype mismatch: got {repr(dtype)}, expected {repr(self.dtype)}"
+        self_dtypes = self.dtype
+
+        if not isinstance(self_dtypes, tuple):
+            self_dtypes = (self_dtypes,)
+
+        for self_dtype in self_dtypes:
+            if np.issubdtype(dtype, self_dtype):
+                passed = True
+                break
+        else:
+            passed = False
+
+        if not passed:
+            msg = f"dtype mismatch: got {repr(dtype)}, expected " + (
+                f"{repr(self_dtypes[0])}"
+                if len(self_dtypes) == 1
+                else f"one of {repr(self_dtypes)}"
             )
+            error = SchemaError(msg)
+
             if context:
                 context.handle_error(error)
             else:
