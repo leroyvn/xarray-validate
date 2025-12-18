@@ -79,7 +79,7 @@ jobs:
       - run: python -m pip install --upgrade coverage[toml]
 
       - name: Download coverage data
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           pattern: coverage-data-*
           merge-multiple: true
@@ -100,7 +100,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Upload HTML report
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: html-report
           path: reports/coverage/html
