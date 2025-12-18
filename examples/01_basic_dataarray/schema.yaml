@@ -1,0 +1,7 @@
+# Basic DataArray schema
+# This schema validates a simple 1D array with integer data
+
+dtype: int32
+name: temperature
+shape: [10]
+dims: [time]
