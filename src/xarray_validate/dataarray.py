@@ -40,13 +40,13 @@ class CoordsSchema(BaseSchema):
     Parameters
     ----------
     coords : dict
-        Dict of coordinate keys and ``DataArraySchema`` objects
+        Dict of coordinate keys and ``DataArraySchema`` objects.
 
-    require_all_keys : bool
-        Whether to require to all coordinates included in ``coords``
+    require_all_keys : bool, default: True
+        Whether to require to all coordinates included in ``coords``.
 
-    allow_extra_keys : bool
-        Whether to allow coordinates not included in ``coords`` dict
+    allow_extra_keys : bool, default: True
+        Whether to allow coordinates not included in ``coords`` dict.
     """
 
     coords: Dict[str, DataArraySchema] = _attrs.field()
