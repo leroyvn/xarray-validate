@@ -1,0 +1,130 @@
+# Complex real-world dataset schema
+# This schema represents a realistic ocean model output with multiple variables,
+# coordinates at different resolutions, and detailed metadata
+
+data_vars:  # Data variables with detailed validation
+  sst:  # Sea surface temperature with attributes
+    dtype: float32
+    dims: [time, lat, lon]
+    shape: [12, 180, 360]
+    attrs:
+      attrs:
+        long_name: Sea Surface Temperature
+        units: degrees_C
+        valid_min: -2.0
+        valid_max: 35.0
+        standard_name: sea_surface_temperature
+
+  sss:    # Sea surface salinity
+    dtype: float32
+    dims: [time, lat, lon]
+    shape: [12, 180, 360]
+    attrs:
+      attrs:
+        long_name: Sea Surface Salinity
+        units: psu
+        valid_min: 0.0
+        valid_max: 42.0
+        standard_name: sea_surface_salinity
+
+  # Ocean current velocity (u-component)
+  u_velocity:
+    dtype: float32
+    dims: [time, depth, lat, lon]
+    shape: [12, 50, 180, 360]
+    attrs:
+      attrs:
+        long_name: Eastward Current Velocity
+        units: m/s
+        standard_name: eastward_sea_water_velocity
+
+  # Ocean current velocity (v-component)
+  v_velocity:
+    dtype: float32
+    dims: [time, depth, lat, lon]
+    shape: [12, 50, 180, 360]
+    attrs:
+      attrs:
+        long_name: Northward Current Velocity
+        units: m/s
+        standard_name: northward_sea_water_velocity
+
+  # Sea ice concentration (2D variable - no depth dimension)
+  ice_concentration:
+    dtype: float32
+    dims: [time, lat, lon]
+    shape: [12, 180, 360]
+    attrs:
+      attrs:
+        long_name: Sea Ice Concentration
+        units: "1"
+        valid_min: 0.0
+        valid_max: 1.0
+
+# Coordinates with validation
+coords:
+  require_all_keys: true
+  allow_extra_keys: true
+
+  coords:
+    # Time coordinate (daily data for one year)
+    time:
+      dtype: int64
+      dims: [time]
+      shape: [12]
+      attrs:
+        attrs:
+          long_name: Time
+          units: days since 2024-01-01
+          calendar: gregorian
+
+    lat:
+      dtype: float32
+      dims: [lat]
+      shape: [180]
+      attrs:
+        attrs:
+          long_name: Latitude
+          units: degrees_north
+          valid_min: -90.0
+          valid_max: 90.0
+          standard_name: latitude
+
+    # Longitude coordinate (0.25 degree resolution)
+    lon:
+      dtype: float32
+      dims: [lon]
+      shape: [360]
+      attrs:
+        attrs:
+          long_name: Longitude
+          units: degrees_east
+          valid_min: -180.0
+          valid_max: 180.0
+          standard_name: longitude
+
+    # Depth coordinate (50 levels)
+    depth:
+      dtype: float32
+      dims: [depth]
+      shape: [50]
+      attrs:
+        attrs:
+          long_name: Depth
+          units: meters
+          positive: down
+          standard_name: depth
+
+# Global dataset attributes
+attrs:
+  require_all_keys: true
+  allow_extra_keys: true
+
+  attrs:
+    title: Global Ocean Model Output
+    institution: Ocean Modeling Center
+    source: OCEAN-MODEL v2.0
+    Conventions: CF-1.8
+    history: Created on 2024-01-01
+    references: https://example.org/ocean-model
+    comment: Daily output from global ocean model simulation

@@ -1,0 +1,39 @@
+# Basic Dataset schema
+# This schema validates a Dataset with multiple data variables and shared coordinates
+
+data_vars:  # Data variables
+  temperature:
+    dtype: float32
+    dims: [time, lat, lon]
+    shape: [12, 180, 360]
+
+  precipitation:
+    dtype: float32
+    dims: [time, lat, lon]
+    shape: [12, 180, 360]
+
+  pressure:
+    dtype: float32
+    dims: [time, lat, lon]
+    shape: [12, 180, 360]
+
+coords:  # Shared coordinates
+  time:
+    dtype: int64
+    dims: [time]
+    shape: [12]
+
+  lat:
+    dtype: float64
+    dims: [lat]
+    shape: [180]
+
+  lon:
+    dtype: float64
+    dims: [lon]
+    shape: [360]
+
+attrs:  # Global attributes (optional)
+  title: Monthly Climate Data  # Short form: assume string type, validate value
+  institution: Example Climate Center
+  source: Climate Model v1.0

@@ -1,0 +1,27 @@
+# DataArray schema with coordinates
+# This schema validates a 2D array with coordinates
+
+dtype: float64
+name: sea_surface_temperature
+shape: [180, 360]
+dims: [lat, lon]
+
+coords:  # Validate coordinates
+  require_all_keys: true  # All specified coordinates must be present
+  allow_extra_keys: true  # Allow extra coordinates not specified in the schema
+
+  coords:
+    lat:  # Dimension coordinate: latitude
+      dtype: float64
+      shape: [180]
+      dims: [lat]
+
+    lon:  # Dimension coordinate: longitude
+      dtype: float64
+      shape: [360]
+      dims: [lon]
+
+    time:  # Non-dimension scalar coordinate: time
+      dtype: int64
+      shape: []
+      dims: []
