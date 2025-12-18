@@ -42,6 +42,7 @@ docs = [
 test = ["pytest-cov", "pytest", "xdoctest"]
 dev = [
   "ipykernel",
+  "nbclient>=0.10.1",
   "rich",
   "setuptools", # Required for PyCharm to be happy
   "taskipy",
