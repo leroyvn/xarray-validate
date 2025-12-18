@@ -4,7 +4,14 @@ All notable changes to this project are documented in this file.
 
 ## 0.0.5 — Upcoming release
 
-*No changes yet*
+### Added
+
+- Consolidated and documented loading schemas from YAML files
+  [#21](https://github.com/leroyvn/xarray-validate/pull/21)
+- Added `BaseSchema.from_yaml()`
+  [#21](https://github.com/leroyvn/xarray-validate/pull/21)
+- Allowed `AttrSchema` to deserialize a single value
+  [#21](https://github.com/leroyvn/xarray-validate/pull/21)
 
 ## 0.0.4 — 2025-12-17
 
