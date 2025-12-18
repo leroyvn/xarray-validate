@@ -595,8 +595,10 @@ class AttrSchema(BaseSchema):
         """
         Instantiate schema from a dictionary.
         """
-
-        return cls(**obj)
+        if isinstance(obj, dict):
+            return cls(**obj)
+        else:
+            return cls(value=obj)
 
     def validate(self, attr: Any, context: ValidationContext | None = None):
         """

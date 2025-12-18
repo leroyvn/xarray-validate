@@ -19,6 +19,21 @@ from xarray_validate import (
 )
 
 
+class TestAttrSchema:
+    @pytest.mark.parametrize(
+        "kwargs, validate, json",
+        [
+            ({"type": str, "value": None}, "foo", {"type": str, "value": None}),
+            ({"type": None, "value": "foo"}, "foo", {"type": None, "value": "foo"}),
+            ({"type": str, "value": "foo"}, "foo", {"type": str, "value": "foo"}),
+        ],
+    )
+    def test_attr_schema(self, kwargs, validate, json):
+        schema = AttrSchema(**kwargs)
+        schema.validate(validate)
+        assert schema.serialize() == json
+
+
 class TestDTypeSchema:
     VALIDATION_VALUES = {
         "int64": ["int", np.int64, "int64", "i8"],
@@ -206,20 +221,6 @@ def test_dims_schema(dims, ordered, validate, json):
     assert DimsSchema.deserialize(schema.serialize()).serialize() == json, (
         "JSON roundtrip of DimsSchema failed"
     )
-
-
-@pytest.mark.parametrize(
-    "type, value, validate, json",
-    [
-        (str, None, "foo", {"type": str, "value": None}),
-        (None, "foo", "foo", {"type": None, "value": "foo"}),
-        (str, "foo", "foo", {"type": str, "value": "foo"}),
-    ],
-)
-def test_attr_schema(type, value, validate, json):
-    schema = AttrSchema(type=type, value=value)
-    schema.validate(validate)
-    assert schema.serialize() == json
 
 
 @pytest.mark.parametrize(
