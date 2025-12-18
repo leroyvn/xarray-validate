@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
+from pathlib import Path
 from typing import Any, List
 
 import attrs
@@ -141,6 +142,43 @@ class BaseSchema(ABC):
         Instantiate schema from basic Python types.
         """
         pass
+
+    @classmethod
+    def from_yaml(cls, path: Path | str):
+        """
+        Load schema from a YAML file.
+
+        Parameters
+        ----------
+        path : path-like
+            Path to the YAML file containing the schema definition.
+
+        Returns
+        -------
+        Schema instance deserialized from the YAML file.
+
+        Raises
+        ------
+        ImportError
+            If `ruamel.yaml <https://yaml.dev/doc/ruamel.yaml/>`__ is not
+            installed.
+        """
+        try:
+            from ruamel.yaml import YAML
+        except ImportError as e:
+            raise ImportError(
+                "Loading schemas from YAML files requires ruamel.yaml. "
+                "Install it with:\n"
+                "  pip install xarray-validate[yaml]\n"
+                "or:\n"
+                "  pip install ruamel-yaml"
+            ) from e
+
+        yaml = YAML(typ="safe")
+        with open(path) as f:
+            schema_dict = yaml.load(f)
+
+        return cls.deserialize(schema_dict)
 
     @classmethod
     def convert(cls, value: Any):
