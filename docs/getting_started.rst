@@ -183,4 +183,83 @@ This also applies to dataset schemas:
     >>> schema.validate(ds)
     None
 
-TBD (include YAML)
+Loading schemas from YAML files
+--------------------------------
+
+Schemas can be stored in YAML files for easy version control and sharing.
+The ``from_yaml()`` method, which relies on the ``deserialize()`` method, is the
+entry point to load schemas from YAML files.
+
+For DataArrays:
+
+.. code-block:: yaml
+
+    # schema.yaml
+    dtype: float32
+    name: temperature
+    shape: [10, 20]
+    dims: [lat, lon]
+
+    coords:
+      coords:
+        lat:
+          dtype: float64
+          shape: [10]
+        lon:
+          dtype: float64
+          shape: [20]
+
+Load and use the schema:
+
+.. code-block:: python
+
+    schema = DataArraySchema.from_yaml("schema.yaml")
+    schema.validate(my_dataarray)
+
+For Datasets:
+
+.. code-block:: yaml
+
+    # schema.yaml
+    data_vars:
+      temperature:
+        dtype: float32
+        dims: [time, lat, lon]
+        shape: [12, 180, 360]
+
+      precipitation:
+        dtype: float32
+        dims: [time, lat, lon]
+        shape: [12, 180, 360]
+
+    coords:
+      coords:
+        time:
+          dtype: int64
+          dims: [time]
+          shape: [12]
+        lat:
+          dtype: float64
+          dims: [lat]
+          shape: [180]
+        lon:
+          dtype: float64
+          dims: [lon]
+          shape: [360]
+
+    attrs:
+      attrs:
+        title: Monthly Climate Data
+        institution: Example Climate Center
+
+Load and use the Dataset schema:
+
+.. code-block:: python
+
+    schema = DatasetSchema.from_yaml("schema.yaml")
+    schema.validate(my_dataset)
+
+.. seealso::
+
+   The `examples directory <https://github.com/leroyvn/xarray-validate/tree/main/examples>`__
+   contains progressive examples demonstrating YAML schema usage.
