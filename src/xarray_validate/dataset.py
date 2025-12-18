@@ -25,6 +25,12 @@ class DatasetSchema(BaseSchema):
     data_vars : dict, optional
         Per-variable :class:`.DataArraySchema`\ s.
 
+    require_all_keys : bool, default: True
+        Whether to require all data variables included in ``data_vars``.
+
+    allow_extra_keys : bool, default: True
+        Whether to allow data variables not included in ``data_vars`` dict.
+
     coords : CoordsSchema, optional
         Coordinate validation schema.
 
@@ -45,6 +51,9 @@ class DatasetSchema(BaseSchema):
         ),
     )
 
+    require_all_keys: bool = _attrs.field(default=True)
+    allow_extra_keys: bool = _attrs.field(default=True)
+
     coords: Union[CoordsSchema, None] = _attrs.field(
         default=None, converter=_attrs.converters.optional(CoordsSchema.convert)
     )
@@ -63,6 +72,8 @@ class DatasetSchema(BaseSchema):
 
     def serialize(self):
         obj = {
+            "require_all_keys": self.require_all_keys,
+            "allow_extra_keys": self.allow_extra_keys,
             "data_vars": {},
             "attrs": self.attrs.serialize() if self.attrs is not None else {},
         }
@@ -77,6 +88,10 @@ class DatasetSchema(BaseSchema):
     def deserialize(cls, obj: dict):
         kwargs = {}
 
+        if "require_all_keys" in obj:
+            kwargs["require_all_keys"] = obj["require_all_keys"]
+        if "allow_extra_keys" in obj:
+            kwargs["allow_extra_keys"] = obj["allow_extra_keys"]
         if "data_vars" in obj:
             kwargs["data_vars"] = {
                 k: DataArraySchema.convert(v) for k, v in obj["data_vars"].items()
@@ -127,17 +142,28 @@ class DatasetSchema(BaseSchema):
             context = ValidationContext(mode=mode)
 
         if self.data_vars is not None:
-            for key, da_schema in self.data_vars.items():
-                if da_schema is not None:
-                    if key not in ds.data_vars:
-                        error = SchemaError(f"data variable {key} not in ds")
-                        if context:
-                            context.handle_error(error)
-                        else:
-                            raise error
+            if self.require_all_keys:
+                missing_keys = set(self.data_vars.keys()) - set(ds.data_vars.keys())
+                if missing_keys:
+                    error = SchemaError(f"data_vars has missing keys: {missing_keys}")
+                    if context:
+                        context.handle_error(error)
                     else:
-                        data_var_context = context.push(f"data_vars.{key}")
-                        da_schema.validate(ds.data_vars[key], data_var_context)
+                        raise error
+
+            if not self.allow_extra_keys:
+                extra_keys = set(ds.data_vars.keys()) - set(self.data_vars.keys())
+                if extra_keys:
+                    error = SchemaError(f"data_vars has extra keys: {extra_keys}")
+                    if context:
+                        context.handle_error(error)
+                    else:
+                        raise error
+
+            for key, da_schema in self.data_vars.items():
+                if da_schema is not None and key in ds.data_vars:
+                    data_var_context = context.push(f"data_vars.{key}")
+                    da_schema.validate(ds.data_vars[key], data_var_context)
 
         if self.coords is not None:  # pragma: no cover
             coords_context = context.push("coords")
