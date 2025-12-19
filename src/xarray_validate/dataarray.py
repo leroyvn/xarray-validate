@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import fnmatch
+import re
 from typing import (
     Any,
     Callable,
@@ -32,6 +34,52 @@ from .components import (
 )
 
 
+def _is_regex_pattern(key: str) -> bool:
+    """Check if a key is a regex pattern (enclosed in curly braces)."""
+    return key.startswith("{") and key.endswith("}")
+
+
+def _is_glob_pattern(key: str) -> bool:
+    """Check if a key is a glob pattern (contains * or ?)."""
+    return "*" in key or "?" in key
+
+
+def _is_pattern_key(key: str) -> bool:
+    """Check if a key is any kind of pattern (glob or regex)."""
+    return _is_glob_pattern(key) or _is_regex_pattern(key)
+
+
+def _pattern_to_regex(pattern: str) -> re.Pattern:
+    """
+    Convert a pattern key to a compiled regex.
+
+    Supports two pattern types:
+    - Glob patterns: 'x_*' matches x_0, x_1, x_foo, etc.
+    - Regex patterns: '{x_\\d+}' matches x_0, x_1, but not x_foo
+
+    Parameters
+    ----------
+    pattern : str
+        The pattern string (glob or regex in curly braces)
+
+    Returns
+    -------
+    re.Pattern
+        Compiled regex pattern
+    """
+    if _is_regex_pattern(pattern):
+        # Remove curly braces and compile as regex
+        regex_str = pattern[1:-1]
+        return re.compile(regex_str)
+    elif _is_glob_pattern(pattern):
+        # Convert glob to regex
+        regex_str = fnmatch.translate(pattern)
+        return re.compile(regex_str)
+    else:
+        # Exact match
+        return re.compile(re.escape(pattern) + "$")
+
+
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class CoordsSchema(BaseSchema):
     """
@@ -40,13 +88,20 @@ class CoordsSchema(BaseSchema):
     Parameters
     ----------
     coords : dict
-        Dict of coordinate keys and ``DataArraySchema`` objects.
+        Dict of coordinate keys and ``DataArraySchema`` objects. Keys can be
+        either exact coordinate names or patterns:
+
+        - Exact match: ``'time'`` matches only 'time'
+        - Glob pattern: ``'x_*'`` matches x_0, x_1, x_foo, etc.
+        - Regex pattern: ``'{x_\\d+}'`` matches x_0, x_1, but not x_foo
 
     require_all_keys : bool, default: True
         Whether to require to all coordinates included in ``coords``.
+        Only applies to exact keys, not pattern keys.
 
     allow_extra_keys : bool, default: True
         Whether to allow coordinates not included in ``coords`` dict.
+        Coordinates matching pattern keys are not considered "extra".
     """
 
     coords: Dict[str, DataArraySchema] = _attrs.field()
@@ -78,8 +133,16 @@ class CoordsSchema(BaseSchema):
     ) -> None:
         # Inherit docstring
 
+        # Separate exact keys from pattern keys
+        exact_keys = {k: v for k, v in self.coords.items() if not _is_pattern_key(k)}
+        pattern_keys = {k: v for k, v in self.coords.items() if _is_pattern_key(k)}
+
+        # Compile pattern regexes
+        compiled_patterns = {k: _pattern_to_regex(k) for k in pattern_keys}
+
         if self.require_all_keys:
-            missing_keys = set(self.coords) - set(coords)
+            # Only check exact keys for require_all_keys
+            missing_keys = set(exact_keys) - set(coords)
             if missing_keys:
                 error = SchemaError(f"coords has missing keys: {missing_keys}")
                 if context:
@@ -88,7 +151,20 @@ class CoordsSchema(BaseSchema):
                     raise error
 
         if not self.allow_extra_keys:
-            extra_keys = set(coords) - set(self.coords)
+            # Check that all coordinates match either exact or pattern keys
+            matched_coords = set()
+            for coord_name in coords:
+                # Check exact match
+                if coord_name in exact_keys:
+                    matched_coords.add(coord_name)
+                    continue
+                # Check pattern match
+                for pattern, regex in compiled_patterns.items():
+                    if regex.fullmatch(coord_name):
+                        matched_coords.add(coord_name)
+                        break
+
+            extra_keys = set(coords) - matched_coords
             if extra_keys:
                 error = SchemaError(f"coords has extra keys: {extra_keys}")
                 if context:
@@ -96,7 +172,8 @@ class CoordsSchema(BaseSchema):
                 else:
                     raise error
 
-        for key, da_schema in self.coords.items():
+        # Validate coordinates matching exact keys
+        for key, da_schema in exact_keys.items():
             if key not in coords:
                 error = SchemaError(f"key {key} not in coords")
                 if context:
@@ -106,6 +183,14 @@ class CoordsSchema(BaseSchema):
             else:
                 child_context = context.push(f"coords.{key}") if context else None
                 da_schema.validate(coords[key], child_context)
+
+        # Validate coordinates matching pattern keys
+        for pattern_key, da_schema in pattern_keys.items():
+            regex = compiled_patterns[pattern_key]
+            for coord_name in coords:
+                if regex.fullmatch(coord_name) and coord_name not in exact_keys:
+                    child_context = context.push(f"coords.{coord_name}") if context else None
+                    da_schema.validate(coords[coord_name], child_context)
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
