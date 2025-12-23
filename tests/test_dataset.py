@@ -228,3 +228,203 @@ def test_data_vars_extra_keys_error():
 
     with pytest.raises(SchemaError, match="data_vars has extra keys"):
         ds_schema.validate(ds)
+
+
+def test_glob_pattern_data_vars():
+    """Test glob pattern matching for data variables."""
+    ds = xr.Dataset(
+        {
+            "x_0": xr.DataArray([1.0, 2.0, 3.0], dims=["time"]),
+            "x_1": xr.DataArray([4.0, 5.0, 6.0], dims=["time"]),
+            "x_2": xr.DataArray([7.0, 8.0, 9.0], dims=["time"]),
+            "temp": xr.DataArray([10.0, 11.0, 12.0], dims=["time"]),
+        }
+    )
+
+    # Pattern key 'x_*' should match all variables starting with 'x_'
+    ds_schema = DatasetSchema(
+        data_vars={
+            "x_*": DataArraySchema(dtype=np.float64, dims=["time"]),
+            "temp": DataArraySchema(dtype=np.float64, dims=["time"]),
+        }
+    )
+
+    # Should validate successfully
+    ds_schema.validate(ds)
+
+
+def test_regex_pattern_data_vars():
+    """Test regex pattern matching for data variables."""
+    ds = xr.Dataset(
+        {
+            "x_0": xr.DataArray([1.0, 2.0, 3.0], dims=["time"]),
+            "x_1": xr.DataArray([4.0, 5.0, 6.0], dims=["time"]),
+            "x_foo": xr.DataArray([7.0, 8.0, 9.0], dims=["time"]),
+            "temp": xr.DataArray([10.0, 11.0, 12.0], dims=["time"]),
+        }
+    )
+
+    # Regex pattern '{x_\d+}' should match only x_0, x_1 but not x_foo
+    ds_schema = DatasetSchema(
+        data_vars={
+            r"{x_\d+}": DataArraySchema(dtype=np.float64, dims=["time"]),
+            "temp": DataArraySchema(dtype=np.float64, dims=["time"]),
+            "x_foo": DataArraySchema(dtype=np.float64, dims=["time"]),
+        }
+    )
+
+    # Should validate successfully
+    ds_schema.validate(ds)
+
+
+def test_glob_pattern_multiple_patterns():
+    """Test multiple glob patterns in data_vars."""
+    ds = xr.Dataset(
+        {
+            "x_0": xr.DataArray([1.0, 2.0], dims=["time"]),
+            "x_1": xr.DataArray([3.0, 4.0], dims=["time"]),
+            "y_0": xr.DataArray([5.0, 6.0], dims=["time"]),
+            "y_1": xr.DataArray([7.0, 8.0], dims=["time"]),
+            "z": xr.DataArray([9.0, 10.0], dims=["time"]),
+        }
+    )
+
+    ds_schema = DatasetSchema(
+        data_vars={
+            "x_*": DataArraySchema(dtype=np.float64, dims=["time"]),
+            "y_*": DataArraySchema(dtype=np.float64, dims=["time"]),
+            "z": DataArraySchema(dtype=np.float64, dims=["time"]),
+        }
+    )
+
+    ds_schema.validate(ds)
+
+
+def test_pattern_with_allow_extra_keys_false():
+    """Test patterns with allow_extra_keys=False."""
+    ds = xr.Dataset(
+        {
+            "x_0": xr.DataArray([1.0, 2.0], dims=["time"]),
+            "x_1": xr.DataArray([3.0, 4.0], dims=["time"]),
+            "temp": xr.DataArray([5.0, 6.0], dims=["time"]),
+        }
+    )
+
+    # 'x_*' matches x_0 and x_1, 'temp' is exact match
+    ds_schema = DatasetSchema(
+        data_vars={
+            "x_*": DataArraySchema(dtype=np.float64),
+            "temp": DataArraySchema(dtype=np.float64),
+        },
+        allow_extra_keys=False,
+    )
+
+    # Should validate successfully
+    ds_schema.validate(ds)
+
+    # Add an extra variable that doesn't match any pattern
+    ds["extra"] = xr.DataArray([7.0, 8.0], dims=["time"])
+
+    # Should raise error for extra key
+    with pytest.raises(SchemaError, match="data_vars has extra keys"):
+        ds_schema.validate(ds)
+
+
+def test_pattern_validation_error():
+    """Test that validation errors are raised for variables matching patterns."""
+    ds = xr.Dataset(
+        {
+            "x_0": xr.DataArray([1.0, 2.0], dims=["time"]),
+            "x_1": xr.DataArray([3, 4], dims=["time"]),  # Wrong dtype
+        }
+    )
+
+    ds_schema = DatasetSchema(
+        data_vars={
+            "x_*": DataArraySchema(dtype=np.float64),
+        }
+    )
+
+    # Should raise error because x_1 has wrong dtype
+    with pytest.raises(SchemaError, match="dtype"):
+        ds_schema.validate(ds)
+
+
+def test_pattern_require_all_keys():
+    """Test that require_all_keys only applies to exact keys, not patterns."""
+    ds = xr.Dataset(
+        {
+            "temp": xr.DataArray([1.0, 2.0], dims=["time"]),
+            # No x_* variables present
+        }
+    )
+
+    # Pattern keys should be optional even with require_all_keys=True
+    ds_schema = DatasetSchema(
+        data_vars={
+            "x_*": DataArraySchema(dtype=np.float64),
+            "temp": DataArraySchema(dtype=np.float64),
+        },
+        require_all_keys=True,
+    )
+
+    # Should validate successfully (pattern keys are optional)
+    ds_schema.validate(ds)
+
+    # But exact keys should still be required
+    ds_no_temp = xr.Dataset({})
+    with pytest.raises(SchemaError, match="data_vars has missing keys"):
+        ds_schema.validate(ds_no_temp)
+
+
+def test_pattern_exact_key_precedence():
+    """Test that exact keys take precedence over pattern keys."""
+    ds = xr.Dataset(
+        {
+            "x_special": xr.DataArray([1, 2], dims=["time"]),
+            "x_0": xr.DataArray([3.0, 4.0], dims=["time"]),
+        }
+    )
+
+    # 'x_special' has both an exact match and matches the pattern 'x_*'
+    # The exact key schema should be used
+    ds_schema = DatasetSchema(
+        data_vars={
+            "x_special": DataArraySchema(dtype=np.int64),  # Exact match: int64
+            "x_*": DataArraySchema(dtype=np.float64),  # Pattern: float64
+        }
+    )
+
+    # Should validate successfully: x_special uses exact schema (int64)
+    # and x_0 uses pattern schema (float64)
+    ds_schema.validate(ds)
+
+
+def test_regex_vs_glob_patterns():
+    """Test that regex patterns are more restrictive than glob patterns."""
+    ds = xr.Dataset(
+        {
+            "var_0": xr.DataArray([1.0, 2.0], dims=["time"]),
+            "var_1": xr.DataArray([3.0, 4.0], dims=["time"]),
+            "var_foo": xr.DataArray([5.0, 6.0], dims=["time"]),
+        }
+    )
+
+    # Glob pattern 'var_*' matches all
+    glob_schema = DatasetSchema(
+        data_vars={
+            "var_*": DataArraySchema(dtype=np.float64),
+        }
+    )
+    glob_schema.validate(ds)
+
+    # Regex pattern '{var_\d+}' matches only var_0 and var_1
+    # This should fail because var_foo doesn't match the pattern
+    regex_schema = DatasetSchema(
+        data_vars={
+            r"{var_\d+}": DataArraySchema(dtype=np.float64),
+        },
+        allow_extra_keys=False,
+    )
+    with pytest.raises(SchemaError, match="data_vars has extra keys"):
+        regex_schema.validate(ds)

@@ -5,11 +5,13 @@ from typing import Callable, Dict, Iterable, Literal, Optional, Union
 import attrs as _attrs
 import xarray as xr
 
+from . import _match
 from .base import (
     BaseSchema,
     SchemaError,
     ValidationContext,
     ValidationMode,
+    ValidationResult,
 )
 from .components import AttrsSchema
 from .dataarray import CoordsSchema, DataArraySchema
@@ -23,13 +25,20 @@ class DatasetSchema(BaseSchema):
     Parameters
     ----------
     data_vars : dict, optional
-        Per-variable :class:`.DataArraySchema`\ s.
+        Per-variable :class:`.DataArraySchema`\ s. Keys can be either exact
+        variable names or patterns:
+
+        - Exact match: ``'temperature'`` matches only 'temperature'
+        - Glob pattern: ``'x_*'`` matches x_0, x_1, x_foo, etc.
+        - Regex pattern: ``'{x_\\d+}'`` matches x_0, x_1, but not x_foo
 
     require_all_keys : bool, default: True
         Whether to require all data variables included in ``data_vars``.
+        Only applies to exact keys, not pattern keys.
 
     allow_extra_keys : bool, default: True
         Whether to allow data variables not included in ``data_vars`` dict.
+        Variables matching pattern keys are not considered "extra".
 
     coords : CoordsSchema, optional
         Coordinate validation schema.
@@ -113,7 +122,7 @@ class DatasetSchema(BaseSchema):
         ds: xr.Dataset,
         context: ValidationContext | None = None,
         mode: Literal["eager", "lazy"] | None = None,
-    ) -> None:
+    ) -> ValidationResult | None:
         """
         Validate an xarray.DataArray against this schema.
 
@@ -142,8 +151,14 @@ class DatasetSchema(BaseSchema):
             context = ValidationContext(mode=mode)
 
         if self.data_vars is not None:
+            # Separate exact keys from pattern keys and compile patterns
+            exact_keys, pattern_keys, compiled_patterns = _match.separate_keys(
+                self.data_vars
+            )
+
             if self.require_all_keys:
-                missing_keys = set(self.data_vars.keys()) - set(ds.data_vars.keys())
+                # Only check exact keys for require_all_keys
+                missing_keys = set(exact_keys.keys()) - set(ds.data_vars.keys())
                 if missing_keys:
                     error = SchemaError(f"data_vars has missing keys: {missing_keys}")
                     if context:
@@ -152,7 +167,11 @@ class DatasetSchema(BaseSchema):
                         raise error
 
             if not self.allow_extra_keys:
-                extra_keys = set(ds.data_vars.keys()) - set(self.data_vars.keys())
+                # Check that all dataset variables match either exact or pattern keys
+                matched_vars = _match.find_matched_keys(
+                    ds.data_vars, exact_keys, compiled_patterns
+                )
+                extra_keys = set(ds.data_vars.keys()) - matched_vars
                 if extra_keys:
                     error = SchemaError(f"data_vars has extra keys: {extra_keys}")
                     if context:
@@ -160,10 +179,21 @@ class DatasetSchema(BaseSchema):
                     else:
                         raise error
 
-            for key, da_schema in self.data_vars.items():
+            # Validate variables matching exact keys
+            for key, da_schema in exact_keys.items():
                 if da_schema is not None and key in ds.data_vars:
                     data_var_context = context.push(f"data_vars.{key}")
                     da_schema.validate(ds.data_vars[key], data_var_context)
+
+            # Validate variables matching pattern keys
+            for pattern_key, da_schema in pattern_keys.items():
+                if da_schema is None:
+                    continue
+                regex = compiled_patterns[pattern_key]
+                for var_name in ds.data_vars.keys():
+                    if regex.fullmatch(var_name) and var_name not in exact_keys:
+                        data_var_context = context.push(f"data_vars.{var_name}")
+                        da_schema.validate(ds.data_vars[var_name], data_var_context)
 
         if self.coords is not None:  # pragma: no cover
             coords_context = context.push("coords")

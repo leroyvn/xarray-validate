@@ -122,6 +122,94 @@ errors will be collected and reported after running all subschemas. For example:
                              ('dims', SchemaError('dimension mismatch in axis 0: got y, expected x')),
                              ('dims', SchemaError('dimension mismatch in axis 1: got x, expected y'))])
 
+Pattern matching for coordinates and data variables
+----------------------------------------------------
+
+Coordinate and data variable keys in schemas support pattern matching, allowing
+you to validate multiple similarly-named items with a single schema definition.
+Two pattern types are supported:
+
+**Glob patterns** use wildcards (``*`` and ``?``) for simple matching:
+
+.. doctest::
+
+    >>> ds = xr.Dataset(
+    ...     {
+    ...         "x_0": xr.DataArray([1, 2, 3], dims="x"),
+    ...         "x_1": xr.DataArray([4, 5, 6], dims="x"),
+    ...         "x_2": xr.DataArray([7, 8, 9], dims="x"),
+    ...     }
+    ... )
+    >>> schema = DatasetSchema(
+    ...     data_vars={
+    ...         "x_*": DataArraySchema(dtype=np.int64, dims=["x"], shape=(3,))
+    ...     }
+    ... )
+    >>> schema.validate(ds)
+
+**Regex patterns** use regular expressions enclosed in curly braces for precise
+matching:
+
+.. doctest::
+
+    >>> ds = xr.Dataset(
+    ...     {
+    ...         "x_0": xr.DataArray([1, 2, 3], dims="x"),
+    ...         "x_1": xr.DataArray([4, 5, 6], dims="x"),
+    ...         "x_foo": xr.DataArray([7, 8, 9], dims="x"),  # Won't match
+    ...     }
+    ... )
+    >>> schema = DatasetSchema(
+    ...     data_vars={
+    ...         "{x_\\d+}": DataArraySchema(dtype=np.int64, dims=["x"], shape=(3,))
+    ...     },
+    ...     allow_extra_keys=True,  # Allow x_foo to exist
+    ... )
+    >>> schema.validate(ds)
+
+Pattern matching also works with :class:`.CoordsSchema`:
+
+.. doctest::
+
+    >>> da = xr.DataArray(
+    ...     np.ones((3, 3)),
+    ...     dims=["x", "y"],
+    ...     coords={
+    ...         "x": np.arange(3),
+    ...         "x_label_0": ("x", np.array(["a", "b", "c"], dtype=object)),
+    ...         "x_label_1": ("x", np.array(["d", "e", "f"], dtype=object)),
+    ...     },
+    ... )
+    >>> schema = DataArraySchema(
+    ...     coords=CoordsSchema(
+    ...         {
+    ...             "x": DataArraySchema(dtype=np.int64),
+    ...             "x_label_*": DataArraySchema(dtype=object),
+    ...         }
+    ...     )
+    ... )
+    >>> schema.validate(da)
+
+**Pattern matching rules:**
+
+- Exact keys take precedence over patterns
+- When ``require_all_keys=True`` (default), only exact keys are required;
+  pattern keys are optional
+- When ``allow_extra_keys=False``, keys must match either an exact key or a
+  pattern
+- Multiple patterns can match the same key; all matching schemas will validate
+  it
+
+.. admonition:: Tips
+    :class: tip
+
+    * Learn more about Python's Unix shell-style wildcards in the :mod:`fnmatch`
+      module documentation.
+    * Learn more about Python's regular expressions in the :mod:`re` module
+      documentation.
+    * Internally, Unix-style wildcards are converted to regular expressions
+      using the :func:`fnmatch.translate` function.
+
 Loading schemas from serialized data structures
 -----------------------------------------------
 
