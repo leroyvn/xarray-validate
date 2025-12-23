@@ -14,6 +14,7 @@ from typing import (
 import attrs as _attrs
 import xarray as xr
 
+from . import _match
 from .base import (
     BaseSchema,
     SchemaError,
@@ -34,19 +35,26 @@ from .components import (
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
 class CoordsSchema(BaseSchema):
-    """
+    r"""
     Schema container for Coordinates
 
     Parameters
     ----------
     coords : dict
-        Dict of coordinate keys and ``DataArraySchema`` objects.
+        Dict of coordinate keys and ``DataArraySchema`` objects. Keys can be
+        either exact coordinate names or patterns:
+
+        - Exact match: ``'time'`` matches only 'time'
+        - Glob pattern: ``'x_*'`` matches x_0, x_1, x_foo, etc.
+        - Regex pattern: ``'{x_\\d+}'`` matches x_0, x_1, but not x_foo
 
     require_all_keys : bool, default: True
         Whether to require to all coordinates included in ``coords``.
+        Only applies to exact keys, not pattern keys.
 
     allow_extra_keys : bool, default: True
         Whether to allow coordinates not included in ``coords`` dict.
+        Coordinates matching pattern keys are not considered "extra".
     """
 
     coords: Dict[str, DataArraySchema] = _attrs.field()
@@ -78,8 +86,12 @@ class CoordsSchema(BaseSchema):
     ) -> None:
         # Inherit docstring
 
+        # Separate exact keys from pattern keys and compile patterns
+        exact_keys, pattern_keys, compiled_patterns = _match.separate_keys(self.coords)
+
         if self.require_all_keys:
-            missing_keys = set(self.coords) - set(coords)
+            # Only check exact keys for require_all_keys
+            missing_keys = set(exact_keys) - set(coords)
             if missing_keys:
                 error = SchemaError(f"coords has missing keys: {missing_keys}")
                 if context:
@@ -88,7 +100,11 @@ class CoordsSchema(BaseSchema):
                     raise error
 
         if not self.allow_extra_keys:
-            extra_keys = set(coords) - set(self.coords)
+            # Check that all coordinates match either exact or pattern keys
+            matched_coords = _match.find_matched_keys(
+                coords, exact_keys, compiled_patterns
+            )
+            extra_keys = set(coords) - matched_coords
             if extra_keys:
                 error = SchemaError(f"coords has extra keys: {extra_keys}")
                 if context:
@@ -96,7 +112,8 @@ class CoordsSchema(BaseSchema):
                 else:
                     raise error
 
-        for key, da_schema in self.coords.items():
+        # Validate coordinates matching exact keys
+        for key, da_schema in exact_keys.items():
             if key not in coords:
                 error = SchemaError(f"key {key} not in coords")
                 if context:
@@ -106,6 +123,16 @@ class CoordsSchema(BaseSchema):
             else:
                 child_context = context.push(f"coords.{key}") if context else None
                 da_schema.validate(coords[key], child_context)
+
+        # Validate coordinates matching pattern keys
+        for pattern_key, da_schema in pattern_keys.items():
+            regex = compiled_patterns[pattern_key]
+            for coord_name in coords:
+                if regex.fullmatch(coord_name) and coord_name not in exact_keys:
+                    child_context = (
+                        context.push(f"coords.{coord_name}") if context else None
+                    )
+                    da_schema.validate(coords[coord_name], child_context)
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
