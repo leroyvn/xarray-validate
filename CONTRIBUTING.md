@@ -98,7 +98,7 @@ uv run pre-commit install
 
 ### Building Documentation
 
-The documentation is built using Sphinx. Available tasks:
+The documentation is built using Zensical. Available tasks:
 
 ```bash
 # Build documentation
@@ -109,14 +109,9 @@ uv run task docs-clean
 
 # Serve documentation with auto-reload
 uv run task docs-serve
-
-# Update documentation requirements
-uv run task docs-lock
 ```
 
-After building, the documentation will be available in `docs/_build/html/`.
-
-The `uv-export` pre-commit hook automatically updates `docs/requirements.txt` when dependencies change.
+After building, the documentation will be available in `site/`.
 
 ## Project Structure
 
@@ -141,10 +136,9 @@ xarray-validate/
 │   ├── test_match.py            # Matching tests
 │   └── test_yaml_examples.py    # YAML example tests
 ├── docs/                        # Documentation source
-│   ├── conf.py                  # Sphinx configuration
-│   ├── index.rst                # Documentation index
-│   ├── getting_started.rst      # Getting started guide
-│   └── api.rst                  # API reference
+│   ├── index.md                 # Documentation index
+│   ├── getting-started.md       # Getting started guide
+│   └── reference.md             # API reference
 ├── examples/                    # Example notebooks and scripts
 ├── pyproject.toml              # Project configuration
 ├── uv.lock                     # Dependency lock file

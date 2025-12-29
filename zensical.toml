@@ -1,0 +1,32 @@
+[project]
+name = "xarray-validate"
+site_name = "xarray-validate"
+site_description = "A lightweight xarray validation library"
+site_url = "https://xarray-validate.readthedocs.io/"
+repo_url = "https://github.com/leroyvn/xarray-validate"
+
+[tool.zensical]
+docs_dir = "docs"
+site_dir = "site"
+
+[[tool.zensical.nav]]
+Home = "index.md"
+"Getting Started" = "getting-started.md"
+Reference = "reference.md"
+
+# Configure mkdocstrings plugin for API documentation
+[tool.zensical.plugins.mkdocstrings]
+enabled = true
+
+[tool.zensical.plugins.mkdocstrings.handlers.python]
+paths = ["src"]
+
+[tool.zensical.plugins.mkdocstrings.handlers.python.options]
+docstring_style = "numpy"
+show_source = true
+show_root_heading = true
+show_root_toc_entry = true
+show_object_full_path = false
+show_symbol_type_heading = true
+show_symbol_type_toc = true
+members_order = "source"
