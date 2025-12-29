@@ -84,7 +84,7 @@ committing.
 
 ### Building Documentation
 
-The documentation is built using Sphinx. Available tasks:
+The documentation is built using Zensical. Available tasks:
 
 ```bash
 # Build documentation
@@ -95,14 +95,9 @@ uv run task docs-clean
 
 # Serve documentation with auto-reload
 uv run task docs-serve
-
-# Update documentation requirements
-uv run task docs-lock
 ```
 
-After building, the documentation will be available in `docs/_build/html/`.
-
-A pre-commit hook automatically updates docs requirements when necessary.
+After building, the documentation will be available in `site/`.
 
 ## Project Structure
 
@@ -122,10 +117,9 @@ xarray-validate/
 │   ├── test_dataarray.py        # DataArray tests
 │   └── test_dataset.py          # Dataset tests
 ├── docs/                        # Documentation source
-│   ├── conf.py                  # Sphinx configuration
-│   ├── index.rst                # Documentation index
-│   ├── getting_started.rst      # Getting started guide
-│   └── api.rst                  # API reference
+│   ├── index.md                 # Documentation index
+│   ├── getting-started.md       # Getting started guide
+│   └── reference.md             # API reference
 ├── pyproject.toml              # Project configuration
 └── README.md                   # Project README
 ```
