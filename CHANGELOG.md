@@ -14,6 +14,8 @@ All notable changes to this project are documented in this file.
   [#21](https://github.com/leroyvn/xarray-validate/pull/21)
 - Allow making `DatasetSchema`'s data variables optional, and allow unknown
   data variables [#22](https://github.com/leroyvn/xarray-validate/pull/22)
+- Support pattern matching for coordinate and data variable keys
+  [#23](https://github.com/leroyvn/xarray-validate/pull/23)
 
 ## 0.0.4 — 2025-12-17
 
