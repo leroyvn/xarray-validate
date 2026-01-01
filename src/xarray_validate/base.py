@@ -123,6 +123,35 @@ class ValidationContext:
         return self.result.has_errors
 
 
+def raise_or_handle(
+    error: SchemaError,
+    context: ValidationContext | None = None,
+    from_exc: Exception | None = None,
+) -> None:
+    """
+    Raise error or handle it via context if available.
+
+    Parameters
+    ----------
+    error : SchemaError
+        The error to raise or handle.
+
+    context : ValidationContext or None
+        Validation context. If provided, error is handled via context.
+        Otherwise, error is raised.
+
+    from_exc : Exception or None
+        Optional exception to chain from when raising.
+    """
+    if context:
+        context.handle_error(error)
+    else:
+        if from_exc is not None:
+            raise error from from_exc
+        else:
+            raise error
+
+
 class SchemaError(Exception):
     """Custom schema error."""
 
