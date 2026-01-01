@@ -578,6 +578,19 @@ class AttrSchema(BaseSchema):
 
     value : Any
         Attribute value definition. ``None`` may be used as a wildcard.
+
+    units : str, optional
+        Exact unit validation (tolerates different spellings/abbreviations).
+        Uses pint to validate that the attribute value represents the same unit.
+        For example, ``units="metre"`` accepts "metre", "m", or "meter".
+        Requires pint to be installed.
+
+    units_compatible : str, optional
+        Compatible units validation (allows unit conversions).
+        Uses pint to validate that the attribute value is compatible with the
+        specified unit. For example, ``units_compatible="metre"`` accepts
+        "meter", "kilometre", "millimetre", etc.
+        Requires pint to be installed.
     """
 
     type: Optional[Type] = _attrs.field(
@@ -585,10 +598,17 @@ class AttrSchema(BaseSchema):
         validator=_attrs.validators.optional(_attrs.validators.instance_of(type)),
     )
     value: Optional[Any] = _attrs.field(default=None)
+    units: Optional[str] = _attrs.field(default=None)
+    units_compatible: Optional[str] = _attrs.field(default=None)
 
     def serialize(self) -> dict:
         # Inherit docstring
-        return {"type": self.type, "value": self.value}
+        return {
+            "type": self.type,
+            "value": self.value,
+            "units": self.units,
+            "units_compatible": self.units_compatible,
+        }
 
     @classmethod
     def deserialize(cls, obj):
@@ -651,6 +671,105 @@ class AttrSchema(BaseSchema):
                 # Exact match for non-pattern values
                 if self.value != attr:
                     error = SchemaError(f"name {attr} != {self.value}")
+                    if context:
+                        context.handle_error(error)
+                    else:
+                        raise error
+
+        # Unit validation
+        if self.units is not None or self.units_compatible is not None:
+            # Ensure attr is a string
+            if not isinstance(attr, str):
+                error = SchemaError(
+                    "Unit validation requires attribute to be a string, got "
+                    f"{type(attr).__name__}"
+                )
+                if context:
+                    context.handle_error(error)
+                else:
+                    raise error
+                return
+
+            # Try to import pint
+            try:
+                import pint
+            except ImportError as e:
+                error = SchemaError(
+                    "Unit validation requires the pint library. "
+                    "Install with: pip install pint"
+                )
+                if context:
+                    context.handle_error(error)
+                else:
+                    raise error from e
+                return
+
+            # Get the application registry
+            ureg = pint.get_application_registry()
+
+            # Parse the attribute value as a unit
+            try:
+                attr_unit = ureg.Unit(attr)
+            except (
+                pint.UndefinedUnitError,
+                pint.errors.DefinitionSyntaxError,
+            ) as e:
+                error = SchemaError(f"Invalid unit '{attr}': {e}")
+                if context:
+                    context.handle_error(error)
+                else:
+                    raise error from e
+                return
+
+            # Validate exact unit match
+            if self.units is not None:
+                try:
+                    expected_unit = ureg.Unit(self.units)
+                except (
+                    pint.UndefinedUnitError,
+                    pint.errors.DefinitionSyntaxError,
+                ) as e:
+                    error = SchemaError(f"Invalid expected unit '{self.units}': {e}")
+                    if context:
+                        context.handle_error(error)
+                    else:
+                        raise error from e
+                    return
+
+                if attr_unit != expected_unit:
+                    error = SchemaError(
+                        f"Unit mismatch: expected '{self.units}' "
+                        f"(or equivalent like '{expected_unit:~}'), got '{attr}'"
+                    )
+                    if context:
+                        context.handle_error(error)
+                    else:
+                        raise error
+
+            # Validate compatible units
+            if self.units_compatible is not None:
+                try:
+                    expected_unit = ureg.Unit(self.units_compatible)
+                except (
+                    pint.UndefinedUnitError,
+                    pint.errors.DefinitionSyntaxError,
+                ) as e:
+                    error = SchemaError(
+                        f"Invalid expected unit '{self.units_compatible}': {e}"
+                    )
+                    if context:
+                        context.handle_error(error)
+                    else:
+                        raise error from e
+                    return
+
+                if not attr_unit.is_compatible_with(expected_unit):
+                    error = SchemaError(
+                        f"Unit '{attr}' is not compatible with "
+                        f"'{self.units_compatible}'. "
+                        f"Expected dimensionality: {expected_unit.dimensionality}, "
+                        f"got: {attr_unit.dimensionality}"
+                    )
                     if context:
                         context.handle_error(error)
                     else:
