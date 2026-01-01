@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import Any, Dict, Hashable, Optional, Tuple, Union
+from typing import Any, Dict, Hashable, Optional, Tuple, Type, Union
 
 import attrs as _attrs
 import numpy as np
 from numpy.typing import DTypeLike
 
-from . import converters
+from . import _match, converters
 from .base import BaseSchema, SchemaError, ValidationContext
 from .types import ChunksT, DimsT, ShapeT
 
@@ -580,7 +580,7 @@ class AttrSchema(BaseSchema):
         Attribute value definition. ``None`` may be used as a wildcard.
     """
 
-    type: Optional[str] = _attrs.field(
+    type: Optional[Type] = _attrs.field(
         default=None,
         validator=_attrs.validators.optional(_attrs.validators.instance_of(type)),
     )
@@ -633,12 +633,28 @@ class AttrSchema(BaseSchema):
                     raise error
 
         if self.value is not None:
-            if self.value is not None and self.value != attr:
-                error = SchemaError(f"name {attr} != {self.value}")
-                if context:
-                    context.handle_error(error)
-                else:
-                    raise error
+            # Check if schema value is a string pattern
+            if isinstance(self.value, str) and _match.is_pattern_key(self.value):
+                # Convert attribute to string for pattern matching
+                attr_str = str(attr)
+                pattern = _match.pattern_to_regex(self.value)
+                if not pattern.fullmatch(attr_str):
+                    error = SchemaError(
+                        f"attribute value {attr!r} does not match pattern "
+                        f"{self.value!r}"
+                    )
+                    if context:
+                        context.handle_error(error)
+                    else:
+                        raise error
+            else:
+                # Exact match for non-pattern values
+                if self.value != attr:
+                    error = SchemaError(f"name {attr} != {self.value}")
+                    if context:
+                        context.handle_error(error)
+                    else:
+                        raise error
 
 
 @_attrs.define(on_setattr=[_attrs.setters.convert, _attrs.setters.validate])
@@ -714,8 +730,12 @@ class AttrsSchema(BaseSchema):
             If validation fails.
         """
 
+        # Separate exact keys from pattern keys and compile patterns
+        exact_keys, pattern_keys, compiled_patterns = _match.separate_keys(self.attrs)
+
         if self.require_all_keys:
-            missing_keys = set(self.attrs) - set(attrs)
+            # Only check exact keys for require_all_keys
+            missing_keys = set(exact_keys) - set(attrs)
             if missing_keys:
                 error = SchemaError(f"attrs has missing keys: {missing_keys}")
                 if context:
@@ -724,7 +744,11 @@ class AttrsSchema(BaseSchema):
                     raise error
 
         if not self.allow_extra_keys:
-            extra_keys = set(attrs) - set(self.attrs)
+            # Check that all attributes match either exact or pattern keys
+            matched_attrs = _match.find_matched_keys(
+                attrs, exact_keys, compiled_patterns
+            )
+            extra_keys = set(attrs) - matched_attrs
             if extra_keys:
                 error = SchemaError(f"attrs has extra keys: {extra_keys}")
                 if context:
@@ -732,7 +756,8 @@ class AttrsSchema(BaseSchema):
                 else:
                     raise error
 
-        for key, attr_schema in self.attrs.items():
+        # Validate attributes matching exact keys
+        for key, attr_schema in exact_keys.items():
             if key not in attrs:
                 error = SchemaError(f"key {key} not in attrs")
                 if context:
@@ -742,3 +767,13 @@ class AttrsSchema(BaseSchema):
             else:
                 child_context = context.push(f"attrs.{key}") if context else None
                 attr_schema.validate(attrs[key], child_context)
+
+        # Validate attributes matching pattern keys
+        for pattern_key, attr_schema in pattern_keys.items():
+            regex = compiled_patterns[pattern_key]
+            for attr_name in attrs:
+                if regex.fullmatch(attr_name) and attr_name not in exact_keys:
+                    child_context = (
+                        context.push(f"attrs.{attr_name}") if context else None
+                    )
+                    attr_schema.validate(attrs[attr_name], child_context)
