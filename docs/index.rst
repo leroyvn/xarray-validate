@@ -65,6 +65,7 @@ Available extras:
 
 * ``dask``: Validate xarray containers based on dask arrays.
 * ``yaml``: Load schemas from YAML files.
+* ``units``: Validate unit values in attributes using the Pint library.
 
 To install all extras:
 

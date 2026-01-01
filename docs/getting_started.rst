@@ -122,50 +122,52 @@ errors will be collected and reported after running all subschemas. For example:
                              ('dims', SchemaError('dimension mismatch in axis 0: got y, expected x')),
                              ('dims', SchemaError('dimension mismatch in axis 1: got x, expected y'))])
 
+.. _sec-getting_started-pattern_matching:
+
 Pattern matching for coordinates and data variables
-----------------------------------------------------
+---------------------------------------------------
 
 Coordinate and data variable keys in schemas support pattern matching, allowing
 you to validate multiple similarly-named items with a single schema definition.
 Two pattern types are supported:
 
-**Glob patterns** use wildcards (``*`` and ``?``) for simple matching:
+* **Glob patterns** use wildcards (``*`` and ``?``) for simple matching:
 
-.. doctest::
+  .. doctest::
 
-    >>> ds = xr.Dataset(
-    ...     {
-    ...         "x_0": xr.DataArray([1, 2, 3], dims="x"),
-    ...         "x_1": xr.DataArray([4, 5, 6], dims="x"),
-    ...         "x_2": xr.DataArray([7, 8, 9], dims="x"),
-    ...     }
-    ... )
-    >>> schema = DatasetSchema(
-    ...     data_vars={
-    ...         "x_*": DataArraySchema(dtype=np.int64, dims=["x"], shape=(3,))
-    ...     }
-    ... )
-    >>> schema.validate(ds)
+      >>> ds = xr.Dataset(
+      ...     {
+      ...         "x_0": xr.DataArray([1, 2, 3], dims="x"),
+      ...         "x_1": xr.DataArray([4, 5, 6], dims="x"),
+      ...         "x_2": xr.DataArray([7, 8, 9], dims="x"),
+      ...     }
+      ... )
+      >>> schema = DatasetSchema(
+      ...     data_vars={
+      ...         "x_*": DataArraySchema(dtype=np.int64, dims=["x"], shape=  (3,))
+      ...     }
+      ... )
+      >>> schema.validate(ds)
 
-**Regex patterns** use regular expressions enclosed in curly braces for precise
-matching:
+* **Regex patterns** use regular expressions enclosed in curly braces for precise
+  matching:
 
-.. doctest::
+  .. doctest::
 
-    >>> ds = xr.Dataset(
-    ...     {
-    ...         "x_0": xr.DataArray([1, 2, 3], dims="x"),
-    ...         "x_1": xr.DataArray([4, 5, 6], dims="x"),
-    ...         "x_foo": xr.DataArray([7, 8, 9], dims="x"),  # Won't match
-    ...     }
-    ... )
-    >>> schema = DatasetSchema(
-    ...     data_vars={
-    ...         "{x_\\d+}": DataArraySchema(dtype=np.int64, dims=["x"], shape=(3,))
-    ...     },
-    ...     allow_extra_keys=True,  # Allow x_foo to exist
-    ... )
-    >>> schema.validate(ds)
+      >>> ds = xr.Dataset(
+      ...     {
+      ...         "x_0": xr.DataArray([1, 2, 3], dims="x"),
+      ...         "x_1": xr.DataArray([4, 5, 6], dims="x"),
+      ...         "x_foo": xr.DataArray([7, 8, 9], dims="x"),  # Won't match
+      ...     }
+      ... )
+      >>> schema = DatasetSchema(
+      ...     data_vars={
+      ...         "{x_\\d+}": DataArraySchema(dtype=np.int64, dims=["x"], shape=(3,))
+      ...     },
+      ...     allow_extra_keys=True,  # Allow x_foo to exist
+      ... )
+      >>> schema.validate(ds)
 
 Pattern matching also works with :class:`.CoordsSchema`:
 
@@ -190,25 +192,74 @@ Pattern matching also works with :class:`.CoordsSchema`:
     ... )
     >>> schema.validate(da)
 
-**Pattern matching rules:**
+.. admonition:: Pattern matching rules
+    :class: info
 
-- Exact keys take precedence over patterns
-- When ``require_all_keys=True`` (default), only exact keys are required;
-  pattern keys are optional
-- When ``allow_extra_keys=False``, keys must match either an exact key or a
-  pattern
-- Multiple patterns can match the same key; all matching schemas will validate
-  it
+    - Exact keys take precedence over patterns
+    - When ``require_all_keys=True`` (default), only exact keys are required;
+      pattern keys are optional
+    - When ``allow_extra_keys=False``, keys must match either an exact key or   a
+      pattern
+    - Multiple patterns can match the same key; all matching schemas will validate
+      it
 
 .. admonition:: Tips
     :class: tip
 
-    * Learn more about Python's Unix shell-style wildcards in the :mod:`fnmatch`
+    * Learn more about Python's wildcards in the :mod:`fnmatch`
       module documentation.
     * Learn more about Python's regular expressions in the :mod:`re` module
       documentation.
-    * Internally, Unix-style wildcards are converted to regular expressions
+    * Internally, wildcards are converted to regular expressions
       using the :func:`fnmatch.translate` function.
+
+Unit validation
+---------------
+
+Attributes are often used to specify the units in which numerical values are
+expressed.
+:ref:`Exact or pattern matching <sec-getting_started-pattern_matching>`
+can be used for basic cases, but that requires being exhaustive and potentially
+good at using regular expression. To simplify unit value checks, the
+:class:`.AttrSchema` class supports two specific arguments that trigger unit
+validation using the `Pint library <https://github.com/hgrecco/pint>`__:
+
+* ``units`` expects specific units but tolerates many kinds of abbreviations or
+  alternative spelling (*e.g.* all of ``"metre"``, ``"meter"``, and ``"m"`` will
+  be accepted):
+
+  .. doctest::
+
+      >>> da_meter = xr.DataArray([1.0], attrs={"units": "meter"})
+      >>> da_m = xr.DataArray([1.0], attrs={"units": "m"})
+      >>> schema = xv.DataArraySchema(
+      ...     attrs=xv.AttrsSchema({"units": xv.AttrSchema(units="metre")})
+      ... )
+      >>> schema.validate(da_meter)  # All equivalent to "metre"
+      >>> schema.validate(da_m)
+
+  It rejects all other units:
+
+  .. doctest::
+
+      >>> da_km = xr.DataArray([1.0], attrs={"units": "km"})
+      >>> schema.validate(da_km)  # doctest: +IGNORE_EXCEPTION_DETAIL
+      Traceback (most recent call last):
+      ...
+      SchemaError: Unit mismatch: got kilometre, expected metre
+
+* ``units_compatible`` is more flexible and accepts all units with the same
+  dimensionality (*e.g.* all of ``"m"``, ``"mm"``, and ``"km"`` will be accepted).
+
+  .. doctest::
+
+      >>> schema = xv.DataArraySchema(
+      ...     attrs=xv.AttrsSchema({"units": xv.AttrSchema(units_compatible="metre")})
+      ... )
+      >>> da_km = xr.DataArray([1.0], attrs={"units": "km"})
+      >>> da_mm = xr.DataArray([1.0], attrs={"units": "mm"})
+      >>> schema.validate(da_km)
+      >>> schema.validate(da_mm)
 
 Loading schemas from serialized data structures
 -----------------------------------------------

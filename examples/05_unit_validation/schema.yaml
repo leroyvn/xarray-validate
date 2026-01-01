@@ -1,0 +1,67 @@
+# Unit Validation Example Schema
+# Demonstrates three types of unit validation using pint:
+#   1. value: Exact string match (no unit parsing)
+#   2. units: Exact unit match (tolerates abbreviations/spellings)
+#   3. units_compatible: Compatible units (allows conversions)
+
+data_vars:
+  # Pattern 1: Exact string match - for non-physical units or CF Convention strings
+  temperature:
+    dtype: float32
+    dims: [time, lat, lon]
+    attrs:
+      long_name: Air Temperature
+      units:
+        value: "kelvin"  # Must be exactly "kelvin" (exact string match)
+
+  # Pattern 2: Exact unit - accepts different spellings/abbreviations of same unit
+  pressure:
+    dtype: float32
+    dims: [time, lat, lon]
+    attrs:
+      long_name: Atmospheric Pressure
+      units:
+        units: "pascal"  # Accepts: pascal, Pa, pascals
+
+  # Pattern 3: Compatible units - allows unit conversions
+  solar_radiation:
+    dtype: float32
+    dims: [time, lat, lon]
+    attrs:
+      long_name: Solar Radiation
+      units:
+        units_compatible: "watt / meter**2"  # Accepts: W/m^2, W/m², kW/cm², etc.
+
+coords:
+  coords:
+    # Exact string match - CF Convention time reference
+    time:
+      dtype: int64
+      dims: [time]
+      attrs:
+        long_name: Time
+        units: "days since 2024-01-01"  # Must be exactly this string
+        calendar: gregorian
+
+    # Exact unit - latitude
+    lat:
+      dtype: float32
+      dims: [lat]
+      attrs:
+        long_name: Latitude
+        units:
+          units: "degree"  # Accepts: degree, degrees, deg
+
+    # Exact unit - longitude
+    lon:
+      dtype: float32
+      dims: [lon]
+      attrs:
+        long_name: Longitude
+        units:
+          units: "degree"  # Accepts: degree, degrees, deg
+
+# Global dataset attributes
+attrs:
+  title: Unit Validation Example Dataset
+  Conventions: CF-1.8
