@@ -138,7 +138,7 @@ class TestAttrSchema:
         sys.modules["pint"] = None
 
         try:
-            with pytest.raises(SchemaError, match="requires the pint library"):
+            with pytest.raises(ImportError, match="requires the pint library"):
                 schema.validate("metre")
         finally:
             # Restore pint module
