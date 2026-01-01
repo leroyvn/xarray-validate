@@ -24,9 +24,21 @@ class TestAttrSchema:
     @pytest.mark.parametrize(
         "kwargs, validate, json",
         [
-            ({"type": str, "value": None}, "foo", {"type": str, "value": None}),
-            ({"type": None, "value": "foo"}, "foo", {"type": None, "value": "foo"}),
-            ({"type": str, "value": "foo"}, "foo", {"type": str, "value": "foo"}),
+            (
+                {"type": str, "value": None},
+                "foo",
+                {"type": str, "value": None, "units": None, "units_compatible": None},
+            ),
+            (
+                {"type": None, "value": "foo"},
+                "foo",
+                {"type": None, "value": "foo", "units": None, "units_compatible": None},
+            ),
+            (
+                {"type": str, "value": "foo"},
+                "foo",
+                {"type": str, "value": "foo", "units": None, "units_compatible": None},
+            ),
         ],
     )
     def test_attr_schema_basic(self, kwargs, validate, json):
@@ -43,7 +55,7 @@ class TestAttrSchema:
 
         # Should not match different value
         with pytest.raises(SchemaError, match="name .* != .*"):
-            schema.validate("kilometers")
+            schema.validate("kilometres")
 
     def test_glob_pattern_value_matching(self):
         """Test that glob patterns match attribute values."""
@@ -84,21 +96,21 @@ class TestAttrSchema:
         schema = AttrsSchema.deserialize(
             {
                 "Conventions": "CF-*",  # Glob pattern
-                "units": "{(meters|kilometers)}",  # Regex pattern
+                "units": "{(metres|kilometres)}",  # Regex pattern
                 "comment": None,  # Wildcard (only check if key exists)
             }
         )
 
         # Validates matching patterns
         schema.validate(
-            {"Conventions": "CF-1.8", "units": "meters", "comment": "any value here"}
+            {"Conventions": "CF-1.8", "units": "metres", "comment": "any value here"}
         )
 
         # Validates other matching values
         schema.validate(
             {
                 "Conventions": "CF-2.0",
-                "units": "kilometers",
+                "units": "kilometres",
                 "comment": "different value",
             }
         )
@@ -106,13 +118,198 @@ class TestAttrSchema:
         # Fails on non-matching patterns
         ctx = ValidationContext(mode="lazy")
         schema.validate(
-            {"Conventions": "ACDD-1.3", "units": "meters", "comment": "test"},
+            {"Conventions": "ACDD-1.3", "units": "metres", "comment": "test"},
             context=ctx,
         )
         errors = ctx.result.errors
         assert len(errors) == 1
         assert errors[0][0] == "attrs.Conventions"
         assert "does not match pattern" in str(errors[0][1])
+
+    def test_attr_schema_unit_validation_no_pint(self):
+        """Test that unit validation fails gracefully without pint."""
+        # Create a schema with unit validation
+        schema = AttrSchema(units="metre")
+
+        # Mock pint import failure
+        import sys
+
+        pint_module = sys.modules.get("pint")
+        sys.modules["pint"] = None
+
+        try:
+            with pytest.raises(SchemaError, match="requires the pint library"):
+                schema.validate("metre")
+        finally:
+            # Restore pint module
+            if pint_module:
+                sys.modules["pint"] = pint_module
+            else:
+                sys.modules.pop("pint", None)
+
+    @pytest.mark.parametrize(
+        "schema_kwargs, valid_values, invalid_values",
+        [
+            # Exact unit match - allows different spellings/abbreviations
+            (
+                {"units": "metre"},
+                ["metre", "m", "meter"],  # All equivalent
+                ["kilometre", "cm", "foot", "not_a_unit"],
+            ),
+            (
+                {"units": "nanometre"},
+                ["nanometer", "nm", "nanometre"],
+                ["micrometer", "um", "angstrom", "metre"],
+            ),
+            (
+                {"units": "kelvin"},
+                ["kelvin", "K"],
+                ["celsius", "fahrenheit", "degC"],
+            ),
+            (
+                {"units": "percent"},
+                ["percent", "%"],
+                ["dimensionless", "1"],
+            ),
+        ],
+    )
+    def test_attr_schema_exact_unit(self, schema_kwargs, valid_values, invalid_values):
+        """Test exact unit validation (tolerates different spellings)."""
+        pytest.importorskip("pint")
+
+        schema = AttrSchema(**schema_kwargs)
+
+        # Test valid values
+        for value in valid_values:
+            schema.validate(value)
+
+        # Test invalid values
+        for value in invalid_values:
+            with pytest.raises(SchemaError, match="(Unit mismatch|Invalid unit)"):
+                schema.validate(value)
+
+    @pytest.mark.parametrize(
+        "schema_kwargs, valid_values, invalid_values",
+        [
+            # Compatible units - allows conversions
+            (
+                {"units_compatible": "metre"},
+                [
+                    "metre",
+                    "m",
+                    "kilometre",
+                    "km",
+                    "centimeter",
+                    "cm",
+                    "millimeter",
+                    "mm",
+                    "foot",
+                    "mile",
+                ],
+                ["second", "kelvin", "pascal"],
+            ),
+            (
+                {"units_compatible": "nanometer"},
+                [
+                    "nanometer",
+                    "nm",
+                    "micrometer",
+                    "um",
+                    "angstrom",
+                    "metre",
+                    "kilometre",
+                ],
+                ["second", "kelvin"],
+            ),
+            (
+                {"units_compatible": "kelvin"},
+                ["kelvin", "K", "celsius", "degC", "fahrenheit"],
+                ["metre", "second"],
+            ),
+            (
+                {"units_compatible": "pascal"},
+                ["pascal", "Pa", "kPa", "hPa", "bar", "millibar", "atm", "psi"],
+                ["metre", "kelvin"],
+            ),
+            (
+                {"units_compatible": "meter / second"},
+                ["m/s", "meter/second", "km/h", "kilometre/hour", "mile/hour", "mph"],
+                ["metre", "second", "meter**2"],
+            ),
+            (
+                {"units_compatible": "watt / meter**2"},
+                ["W/m**2", "watt/meter**2", "W/m^2"],
+                ["watt", "metre"],
+            ),
+        ],
+    )
+    def test_attr_schema_compatible_units(
+        self, schema_kwargs, valid_values, invalid_values
+    ):
+        """Test compatible unit validation (allows conversions)."""
+        pytest.importorskip("pint")
+
+        schema = AttrSchema(**schema_kwargs)
+
+        # Test valid values
+        for value in valid_values:
+            schema.validate(value)
+
+        # Test invalid values
+        for value in invalid_values:
+            with pytest.raises(SchemaError, match="not compatible"):
+                schema.validate(value)
+
+    def test_attr_schema_unit_validation_non_string(self):
+        """Test that unit validation requires string attributes."""
+        pytest.importorskip("pint")
+
+        schema = AttrSchema(units="metre")
+
+        with pytest.raises(SchemaError, match="requires attribute to be a string"):
+            schema.validate(123)
+
+        with pytest.raises(SchemaError, match="requires attribute to be a string"):
+            schema.validate(None)
+
+    def test_attr_schema_invalid_unit_string(self):
+        """Test that invalid unit strings are caught."""
+        pytest.importorskip("pint")
+
+        schema = AttrSchema(units="metre")
+
+        with pytest.raises(SchemaError, match="Invalid unit"):
+            schema.validate("not_a_real_unit")
+
+    def test_attr_schema_serialize_with_units(self):
+        """Test serialization includes unit fields."""
+        schema = AttrSchema(units="metre")
+        result = schema.serialize()
+        assert result == {
+            "type": None,
+            "value": None,
+            "units": "metre",
+            "units_compatible": None,
+        }
+
+        schema = AttrSchema(units_compatible="kelvin")
+        result = schema.serialize()
+        assert result == {
+            "type": None,
+            "value": None,
+            "units": None,
+            "units_compatible": "kelvin",
+        }
+
+    def test_attr_schema_deserialize_with_units(self):
+        """Test deserialization handles unit fields."""
+        schema = AttrSchema.deserialize({"units": "metre"})
+        assert schema.units == "metre"
+        assert schema.units_compatible is None
+
+        schema = AttrSchema.deserialize({"units_compatible": "kelvin"})
+        assert schema.units is None
+        assert schema.units_compatible == "kelvin"
 
 
 class TestAttrsSchema:
@@ -127,7 +324,14 @@ class TestAttrsSchema:
                 {
                     "allow_extra_keys": True,
                     "require_all_keys": True,
-                    "attrs": {"foo": {"type": None, "value": "bar"}},
+                    "attrs": {
+                        "foo": {
+                            "type": None,
+                            "value": "bar",
+                            "units": None,
+                            "units_compatible": None,
+                        }
+                    },
                 },
             ),
             (
@@ -136,7 +340,14 @@ class TestAttrsSchema:
                 {
                     "allow_extra_keys": True,
                     "require_all_keys": True,
-                    "attrs": {"foo": {"type": None, "value": 1}},
+                    "attrs": {
+                        "foo": {
+                            "type": None,
+                            "value": 1,
+                            "units": None,
+                            "units_compatible": None,
+                        }
+                    },
                 },
             ),
         ],

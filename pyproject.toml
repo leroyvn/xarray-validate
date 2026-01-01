@@ -29,6 +29,7 @@ Repository = "https://github.com/leroyvn/xarray-validate/"
 [project.optional-dependencies]
 dask = ["dask"]
 yaml = ["ruamel-yaml"]
+units = ["pint"]
 
 [dependency-groups]
 lint = ["ruff>=0.14.0"]
