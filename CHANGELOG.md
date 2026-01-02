@@ -16,6 +16,15 @@ All notable changes to this project are documented in this file.
   data variables [#22](https://github.com/leroyvn/xarray-validate/pull/22)
 - Support pattern matching for coordinate and data variable keys
   [#23](https://github.com/leroyvn/xarray-validate/pull/23)
+- Add pattern match support for attribute values and keys
+  [#25](https://github.com/leroyvn/xarray-validate/pull/25)
+- Add Pint-based unit validation system for attributes
+  [#26](https://github.com/leroyvn/xarray-validate/pull/26)
+
+### Changed
+
+- Refactored the codebase to make it DRYer
+  [#27](https://github.com/leroyvn/xarray-validate/pull/27)
 
 ## 0.0.4 — 2025-12-17
 
