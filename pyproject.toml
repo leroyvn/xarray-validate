@@ -81,7 +81,7 @@ testpaths = ["tests", "src", "docs"]
 addopts = [
   "--tb=short",
   "--xdoctest",
-  "--xdoctest-glob='*.rst'",
+  "--xdoctest-glob=*.rst",
   "--xdoctest-options=+ELLIPSIS,+NORMALIZE_WHITESPACE,+IGNORE_EXCEPTION_DETAIL",
 ]
 norecursedirs = [".git", ".env", "dist", "__pypackages__"]
