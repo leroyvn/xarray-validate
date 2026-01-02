@@ -9,9 +9,9 @@ A basic DataArray validation schema can be defined as simply as
 .. doctest::
 
     >>> import numpy as np
-    >>> from xarray_validate import DataArraySchema
+    >>> import xarray_validate as xv
 
-    >>> schema = DataArraySchema(
+    >>> schema = xv.DataArraySchema(
     ...     dtype=np.int32, name="foo", shape=(4,), dims=["x"]
     ... )
 
@@ -49,14 +49,13 @@ For example:
 
 .. doctest::
 
-    >>> from xarray_validate import CoordsSchema
-    >>> schema = DataArraySchema(
+    >>> schema = xv.DataArraySchema(
     ...     dtype=np.int32,
     ...     name="foo",
     ...     shape=(4,),
     ...     dims=["x"],
-    ...     coords=CoordsSchema(
-    ...         {"x": DataArraySchema(dtype=np.int64, shape=(4,))}
+    ...     coords=xv.CoordsSchema(
+    ...         {"x": xv.DataArraySchema(dtype=np.int64, shape=(4,))}
     ...     )
     ... )
     >>> schema.validate(da)
@@ -72,7 +71,6 @@ as values:
 
 .. doctest::
 
-    >>> from xarray_validate import DatasetSchema
     >>> ds = xr.Dataset(
     ...     {
     ...         "x": xr.DataArray(np.arange(4) - 2, dims="x"),
@@ -82,13 +80,13 @@ as values:
     ...         ),
     ...     }
     ... )
-    >>> schema = DatasetSchema(
+    >>> schema = xv.DatasetSchema(
     ...     data_vars={
-    ...         "foo": DataArraySchema(dtype="<i4", dims=["x"], shape=[4]),
-    ...         "bar": DataArraySchema(dtype="<f8", dims=["x", "y"], shape=[4, 2]),
+    ...         "foo": xv.DataArraySchema(dtype="<i4", dims=["x"], shape=[4]),
+    ...         "bar": xv.DataArraySchema(dtype="<f8", dims=["x", "y"], shape=[4, 2]),
     ...     },
-    ...     coords=CoordsSchema(
-    ...         {"x": DataArraySchema(dtype="<i8", dims=["x"], shape=(4,))}
+    ...     coords=xv.CoordsSchema(
+    ...         {"x": xv.DataArraySchema(dtype="<i8", dims=["x"], shape=(4,))}
     ...     ),
     ... )
     >>> schema.validate(ds)
@@ -104,11 +102,10 @@ errors will be collected and reported after running all subschemas. For example:
 .. doctest::
     :options: +NORMALIZE_WHITESPACE
 
-    >>> from xarray_validate import DTypeSchema, DimsSchema, NameSchema
-    >>> schema = DataArraySchema(
-    ...     dtype=DTypeSchema(np.int64),  # Wrong dtype
-    ...     dims=DimsSchema(["x", "y"]),  # Wrong dimension order
-    ...     name=NameSchema("temperature"),  # Wrong name
+    >>> schema = xv.DataArraySchema(
+    ...     dtype=xv.DTypeSchema(np.int64),  # Wrong dtype
+    ...     dims=xv.DimsSchema(["x", "y"]),  # Wrong dimension order
+    ...     name=xv.NameSchema("temperature"),  # Wrong name
     ... )
     >>> da = xr.DataArray(
     ...     np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float32),
@@ -142,9 +139,9 @@ Two pattern types are supported:
       ...         "x_2": xr.DataArray([7, 8, 9], dims="x"),
       ...     }
       ... )
-      >>> schema = DatasetSchema(
+      >>> schema = xv.DatasetSchema(
       ...     data_vars={
-      ...         "x_*": DataArraySchema(dtype=np.int64, dims=["x"], shape=  (3,))
+      ...         "x_*": xv.DataArraySchema(dtype=np.int64, dims=["x"], shape=  (3,))
       ...     }
       ... )
       >>> schema.validate(ds)
@@ -161,9 +158,9 @@ Two pattern types are supported:
       ...         "x_foo": xr.DataArray([7, 8, 9], dims="x"),  # Won't match
       ...     }
       ... )
-      >>> schema = DatasetSchema(
+      >>> schema = xv.DatasetSchema(
       ...     data_vars={
-      ...         "{x_\\d+}": DataArraySchema(dtype=np.int64, dims=["x"], shape=(3,))
+      ...         "{x_\\d+}": xv.DataArraySchema(dtype=np.int64, dims=["x"], shape=(3,))
       ...     },
       ...     allow_extra_keys=True,  # Allow x_foo to exist
       ... )
@@ -182,11 +179,11 @@ Pattern matching also works with :class:`.CoordsSchema`:
     ...         "x_label_1": ("x", np.array(["d", "e", "f"], dtype=object)),
     ...     },
     ... )
-    >>> schema = DataArraySchema(
-    ...     coords=CoordsSchema(
+    >>> schema = xv.DataArraySchema(
+    ...     coords=xv.CoordsSchema(
     ...         {
-    ...             "x": DataArraySchema(dtype=np.int64),
-    ...             "x_label_*": DataArraySchema(dtype=object),
+    ...             "x": xv.DataArraySchema(dtype=np.int64),
+    ...             "x_label_*": xv.DataArraySchema(dtype=object),
     ...         }
     ...     )
     ... )
@@ -198,7 +195,7 @@ Pattern matching also works with :class:`.CoordsSchema`:
     - Exact keys take precedence over patterns
     - When ``require_all_keys=True`` (default), only exact keys are required;
       pattern keys are optional
-    - When ``allow_extra_keys=False``, keys must match either an exact key or   a
+    - When ``allow_extra_keys=False``, keys must match either an exact key or a
       pattern
     - Multiple patterns can match the same key; all matching schemas will validate
       it
@@ -276,7 +273,7 @@ to the argument of the respective schema constructor:
     ...     coords={"x": ("x", np.arange(4)), "y": ("x", np.linspace(0, 1, 4))},
     ...     name="foo",
     ... )
-    >>> schema = DataArraySchema.deserialize(
+    >>> schema = xv.DataArraySchema.deserialize(
     ...     {
     ...         "name": "foo",
     ...         "dtype": "int32",
@@ -306,7 +303,7 @@ This also applies to dataset schemas:
     ...         ),
     ...     }
     ... )
-    >>> schema = DatasetSchema.deserialize(
+    >>> schema = xv.DatasetSchema.deserialize(
     ...     {
     ...         "data_vars": {
     ...             "foo": {"dtype": "<i4", "dims": ["x"], "shape": [4]},
@@ -352,7 +349,7 @@ Load and use the schema:
 
 .. code-block:: python
 
-    schema = DataArraySchema.from_yaml("schema.yaml")
+    schema = xv.DataArraySchema.from_yaml("schema.yaml")
     schema.validate(my_dataarray)
 
 For Datasets:
@@ -395,7 +392,7 @@ Load and use the Dataset schema:
 
 .. code-block:: python
 
-    schema = DatasetSchema.from_yaml("schema.yaml")
+    schema = xv.DatasetSchema.from_yaml("schema.yaml")
     schema.validate(my_dataset)
 
 .. seealso::

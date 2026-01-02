@@ -2,6 +2,8 @@ import numpy as np
 import pytest
 import xarray as xr
 
+import xarray_validate as xv
+
 # ------------------------------------------------------------------------------
 #                                 Pytest config
 # ------------------------------------------------------------------------------
@@ -45,6 +47,8 @@ def add_imports_to_xdoctest_namespace(xdoctest_namespace):
     without explicit imports.
     """
     xdoctest_namespace["np"] = np
+    xdoctest_namespace["xr"] = xr
+    xdoctest_namespace["xv"] = xv
 
 
 @pytest.fixture
