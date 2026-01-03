@@ -14,12 +14,14 @@ help you get started with development and understand the project's workflow.
 ### Development setup
 
 1. **Fork and clone the repository**:
+
    ```bash
    git clone https://github.com/yourusername/xarray-validate.git
    cd xarray-validate
    ```
 
 2. **Install the project in development mode**:
+
    ```bash
    uv sync --locked --all-extras --dev
    ```
@@ -28,6 +30,7 @@ help you get started with development and understand the project's workflow.
    extras.
 
 3. **Verify the installation**:
+
    ```bash
    uv run python -c "import xarray_validate; print('Installation successful!')"
    ```
@@ -45,16 +48,19 @@ This project uses several tools to maintain code quality:
 ### Running Tests
 
 Run the full test suite:
+
 ```bash
 uv run task test
 ```
 
 Run tests with coverage:
+
 ```bash
 uv run task test-cov
 ```
 
 Generate HTML coverage report:
+
 ```bash
 uv run task test-cov-report
 ```
@@ -70,17 +76,25 @@ The project uses Ruff for code formatting and linting. The configuration is in
 `pyproject.toml`.
 
 To check your code:
+
 ```bash
 uv run ruff check .
 ```
 
 To format your code:
+
 ```bash
 uv run ruff format .
 ```
 
 Pre-commit hooks are set up and will automatically format modified files upon
 committing.
+
+Install the hooks with:
+
+```bash
+uv run pre-commit install
+```
 
 ### Building Documentation
 
@@ -102,7 +116,7 @@ uv run task docs-lock
 
 After building, the documentation will be available in `docs/_build/html/`.
 
-A pre-commit hook automatically updates docs requirements when necessary.
+The `uv-export` pre-commit hook automatically updates `docs/requirements.txt` when dependencies change.
 
 ## Project Structure
 
@@ -115,18 +129,26 @@ xarray-validate/
 │   ├── converters.py            # Type converters
 │   ├── dataarray.py             # DataArray validation
 │   ├── dataset.py               # Dataset validation
-│   └── types.py                 # Type definitions
+│   ├── testing.py               # Testing utilities
+│   ├── types.py                 # Type definitions
+│   ├── units.py                 # Unit validation
+│   └── _match.py                # Internal matching utilities
 ├── tests/                       # Test suite
-│   ├── conftest.py              # Test configuration
 │   ├── test_components.py       # Component tests
 │   ├── test_dataarray.py        # DataArray tests
-│   └── test_dataset.py          # Dataset tests
+│   ├── test_dataset.py          # Dataset tests
+│   ├── test_lazy_validation.py  # Lazy validation tests
+│   ├── test_match.py            # Matching tests
+│   └── test_yaml_examples.py    # YAML example tests
 ├── docs/                        # Documentation source
 │   ├── conf.py                  # Sphinx configuration
 │   ├── index.rst                # Documentation index
 │   ├── getting_started.rst      # Getting started guide
 │   └── api.rst                  # API reference
+├── examples/                    # Example notebooks and scripts
 ├── pyproject.toml              # Project configuration
+├── uv.lock                     # Dependency lock file
+├── CONTRIBUTING.md             # This file
 └── README.md                   # Project README
 ```
 
@@ -149,6 +171,7 @@ We welcome various types of contributions:
    - For feature requests, describe the use case and expected behavior
 
 2. **Create a branch**:
+
    ```bash
    git checkout -b feature/your-feature-name
    # or
@@ -162,18 +185,21 @@ We welcome various types of contributions:
    - Ensure all tests pass
 
 4. **Test your changes**:
+
    ```bash
    uv run task test
    uv run ruff check .
    ```
 
 5. **Commit your changes**:
+
    ```bash
    git add .
    git commit -m "Add clear description of changes"
    ```
 
 6. **Push and create a pull request**:
+
    ```bash
    git push origin your-branch-name
    ```
@@ -196,15 +222,17 @@ We welcome various types of contributions:
 - Use descriptive test names that explain what is being tested
 - Include both positive and negative test cases
 - Test edge cases and error conditions
-- Aim for high test coverage (current target: >90%)
+- Use pytest fixtures defined in `conftest.py` for common test setup
+- The project uses pytest with xdoctest for docstring testing
 
 ### Documentation guidelines
 
 - Use clear, concise language
-- Include code examples where helpful
+- Include code examples where helpful (they will be tested via xdoctest)
 - Update the API documentation for new functions/classes
-- Add docstrings to all public functions and classes
+- Add docstrings to all public functions and classes using Numpydoc format
 - Follow the existing documentation style
+- Documentation is built with Sphinx and hosted on Read the Docs
 
 ## Release process
 
@@ -212,6 +240,7 @@ This project uses semantic versioning (SemVer). Releases are automated through
 GitHub Actions when tags are pushed.
 
 Version format: `MAJOR.MINOR.PATCH`
+
 - **MAJOR**: Breaking changes
 - **MINOR**: New features (backward compatible)
 - **PATCH**: Bug fixes (backward compatible)
