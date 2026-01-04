@@ -77,7 +77,7 @@ Development installation:
 
 .. code:: shell
 
-    uv sync --all-groups --all-extras
+    uv sync --dev --all-extras
 
 .. toctree::
     :maxdepth: 2
