@@ -92,6 +92,67 @@ as values:
     >>> schema.validate(ds)
     None
 
+Constructing schemas from existing data
+----------------------------------------
+
+Instead of manually defining schemas, you can automatically generate them from
+existing xarray objects using the :meth:`from_dataarray` and :meth:`from_dataset`
+factory methods. This is mainly useful for creating a baseline schema from a
+reference data file. Since this feature leverages the serialization
+infrastructure, it is likely that the produced schema will contain too much
+validation details for the desired used case.
+
+For DataArrays:
+
+.. doctest::
+
+    >>> da = xr.DataArray(
+    ...     np.ones(4, dtype="i4"),
+    ...     dims=["x"],
+    ...     coords={"x": ("x", np.arange(4)), "y": ("x", np.linspace(0, 1, 4))},
+    ...     name="foo",
+    ... )
+    >>> schema = xv.DataArraySchema.from_dataarray(da)
+    >>> schema.validate(da)  # Validates successfully
+    None
+
+The generated schema captures all structural properties:
+
+.. doctest::
+
+    >>> schema.dtype
+    DTypeSchema(dtype=dtype('int32'))
+    >>> schema.name
+    NameSchema(name='foo')
+    >>> schema.dims
+    DimsSchema(dims=('x',), ordered=True)
+
+For Datasets:
+
+.. doctest::
+
+    >>> ds = xr.Dataset(
+    ...     {
+    ...         "foo": xr.DataArray(np.ones(4, dtype="i4"), dims="x"),
+    ...         "bar": xr.DataArray(
+    ...             np.arange(8, dtype=np.float64).reshape(4, 2), dims=("x", "y")
+    ...         ),
+    ...     },
+    ...     coords={"x": np.arange(4)},
+    ... )
+    >>> schema = xv.DatasetSchema.from_dataset(ds)
+    >>> schema.validate(ds)  # Validates successfully
+    None
+
+The generated schemas can be serialized for storage and reuse:
+
+.. doctest::
+
+    >>> serialized = schema.serialize()
+    >>> reconstructed_schema = xv.DatasetSchema.deserialize(serialized)
+    >>> reconstructed_schema.validate(ds)  # Works with the original dataset
+    None
+
 Eager vs lazy validation mode
 -----------------------------
 
