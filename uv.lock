@@ -4575,7 +4575,7 @@ wheels = [
 
 [[package]]
 name = "xarray-validate"
-version = "0.0.5.dev0"
+version = "0.0.5"
 source = { editable = "." }
 dependencies = [
     { name = "attrs", version = "25.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
