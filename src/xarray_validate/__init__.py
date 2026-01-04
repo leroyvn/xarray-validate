@@ -2,7 +2,7 @@
 Main interface.
 """
 
-from . import types as types
+from . import testing, types
 from ._version import version as __version__
 from .base import (
     SchemaError,
@@ -37,9 +37,9 @@ __all__ = [
     "NameSchema",
     "SchemaError",
     "ShapeSchema",
-    "testing",
-    "types",
     "ValidationContext",
     "ValidationMode",
     "ValidationResult",
+    "testing",
+    "types",
 ]

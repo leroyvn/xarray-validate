@@ -63,9 +63,9 @@ Install from PyPI in your virtual environment:
 
 Available extras:
 
-* ``dask``: Validate xarray containers based on dask arrays.
 * ``yaml``: Load schemas from YAML files.
 * ``units``: Validate unit values in attributes using the Pint library.
+* ``dask``: Validate xarray containers based on dask arrays (experimental).
 
 To install all extras:
 

@@ -121,12 +121,13 @@ errors will be collected and reported after running all subschemas. For example:
 
 .. _sec-getting_started-pattern_matching:
 
-Pattern matching for coordinates and data variables
----------------------------------------------------
+Pattern matching for coordinates, data variables and attributes
+---------------------------------------------------------------
 
 Coordinate and data variable keys in schemas support pattern matching, allowing
 you to validate multiple similarly-named items with a single schema definition.
-Two pattern types are supported:
+This also applies to attribute keys and string values. Two pattern types are
+supported:
 
 * **Glob patterns** use wildcards (``*`` and ``?``) for simple matching:
 
