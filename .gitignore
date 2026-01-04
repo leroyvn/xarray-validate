@@ -13,3 +13,4 @@ docs/_build
 .coverage
 .DS_Store
 .vscode/
+CLAUDE.md
