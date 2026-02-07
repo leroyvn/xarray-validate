@@ -111,7 +111,7 @@ uv run task docs-clean
 uv run task docs-serve
 ```
 
-After building, the documentation will be available in `site/`.
+After building, the documentation will be available in `docs/_build/zensical/`.
 
 ## Project Structure
 

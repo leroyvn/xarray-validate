@@ -16,7 +16,7 @@ build:
     post_build:
       - zensical build
       - mkdir -p $READTHEDOCS_OUTPUT/html/
-      - cp -r site/* $READTHEDOCS_OUTPUT/html/
+      - cp -r docs/_build/zensical/* $READTHEDOCS_OUTPUT/html/
 
 # Install the package
 python:

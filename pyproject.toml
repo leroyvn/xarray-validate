@@ -35,7 +35,7 @@ docs = [
   "zensical>=0.0.21",
   "mkdocstrings-python>=1.0",
 ]
-test = ["pytest-cov", "pytest"]
+test = ["pytest-cov", "pytest", "xdoctest"]
 dev = [
   "ipykernel",
   "nbclient>=0.10.1",
@@ -92,7 +92,7 @@ relative-imports-order = "closest-to-furthest"
 
 [tool.taskipy.tasks]
 docs = "zensical build"
-docs-clean = "rm -rf site/"
+docs-clean = "rm -rf docs/_build/"
 docs-serve = "zensical serve"
 test = "pytest"
 test-cov = "pytest --cov=src"

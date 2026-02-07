@@ -9,7 +9,7 @@ wheels/
 # the rest
 .venv
 .idea/
-site/
+docs/_build/
 .coverage
 .DS_Store
 .vscode/
