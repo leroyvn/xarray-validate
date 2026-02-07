@@ -109,9 +109,14 @@ uv run task docs-clean
 
 # Serve documentation with auto-reload
 uv run task docs-serve
+
+# Update documentation requirements
+uv run task docs-lock
 ```
 
 After building, the documentation will be available in `docs/_build/zensical/`.
+
+The `uv-export` pre-commit hook automatically updates `docs/requirements.txt` when dependencies change.
 
 ## Project Structure
 

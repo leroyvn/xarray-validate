@@ -28,4 +28,4 @@ repos:
     rev: 0.9.18  # uv version
     hooks:
       - id: uv-export
-        args: [ "--frozen", "--no-hashes", "--no-annotate", "--output-file=docs/requirements.txt" ]
+        args: [ "--frozen", "--no-hashes", "--no-annotate", "--only-group=docs", "--no-dev", "--output-file=docs/requirements.txt" ]

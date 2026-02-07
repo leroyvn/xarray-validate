@@ -11,8 +11,6 @@ build:
   tools:
     python: "3.10"
   jobs:
-    post_install:
-      - pip install zensical mkdocstrings-python
     post_build:
       - zensical build
       - mkdir -p $READTHEDOCS_OUTPUT/html/
@@ -21,5 +19,6 @@ build:
 # Install the package
 python:
   install:
+    - requirements: docs/requirements.txt
     - method: pip
       path: .
