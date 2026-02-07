@@ -34,9 +34,19 @@ toggle.name = "Switch to system preference"
 
 # Configure mkdocstrings plugin for API documentation
 [project.plugins.mkdocstrings.handlers.python]
-inventories = ["https://docs.python.org/3/objects.inv"]
+inventories = [
+    "https://docs.python.org/3/objects.inv",
+    "https://numpy.org/doc/stable/objects.inv",
+    "https://docs.xarray.dev/en/stable/objects.inv"
+]
 paths = ["src"]
 
 [project.plugins.mkdocstrings.handlers.python.options]
 docstring_style = "numpy"
 members_order = "source"
+show_signature_annotations = true
+show_symbol_type_heading = true
+show_symbol_type_toc = true
+separate_signature = true
+merge_init_into_class = true
+docstring_section_style = "table"
