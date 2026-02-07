@@ -32,7 +32,7 @@ units = ["pint"]
 [dependency-groups]
 lint = ["ruff>=0.14.0"]
 docs = [
-  "zensical>=0.0.15",
+  "zensical>=0.0.21",
   "mkdocstrings-python>=1.0",
 ]
 test = ["pytest-cov", "pytest"]
