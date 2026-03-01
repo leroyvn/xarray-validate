@@ -50,7 +50,7 @@ jobs:
           fresh_env/bin/python -c "import xarray_validate; print(xarray_validate.__version__)"
 
       - name: Store distribution packages
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: python-package-distributions
           path: dist/
